@@ -1,4 +1,21 @@
+use crate::cli::{self, Startup, StartupInfo};
 use crate::git::{self, CommitInfo, DirEntryInfo, FileDiff, Scope, Side};
+use crate::review::recents;
+
+#[tauri::command]
+pub fn get_startup(startup: tauri::State<'_, Startup>) -> Result<StartupInfo, String> {
+    Ok(cli::startup_info(startup.inner()))
+}
+
+#[tauri::command]
+pub fn list_recents(limit: usize) -> Result<Vec<String>, String> {
+    recents::list(limit).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn record_recent(repo: String) -> Result<(), String> {
+    recents::record(&repo).map_err(|e| e.to_string())
+}
 
 #[tauri::command]
 pub fn get_diff(scope: Scope) -> Result<Vec<FileDiff>, String> {

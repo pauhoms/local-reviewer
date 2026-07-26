@@ -1,13 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { initialState, PANELS, reduce, setItemCount, setPageSize } from "./machine";
+import { DEFAULT_KEYMAPS } from "./keymap";
+import type { Keymaps } from "./keymap";
+import { initialState, PANELS, reduce, setCursor, setItemCount, setPageSize } from "./machine";
 import type { Command, KeyEvent, MachineState, Panel } from "./types";
 
 export interface PanelConfig {
   itemCount: number;
   pageSize: number;
+  /** Identity of the list on show: a new one starts under the cursor again. */
+  listId?: string;
 }
 
 export type KeyboardConfig = Record<Panel, PanelConfig>;
+
+/** A screen with nothing to walk through: only keys that need no list answer. */
+export const NO_LISTS: KeyboardConfig = {
+  tree: { itemCount: 0, pageSize: 0 },
+  diff: { itemCount: 0, pageSize: 0 },
+  comments: { itemCount: 0, pageSize: 0 },
+};
 
 function normalizeEvent(event: KeyboardEvent): KeyEvent {
   return {
@@ -37,6 +48,7 @@ function applyConfig(state: MachineState, config: KeyboardConfig): MachineState 
 export function useKeyboard(
   config: KeyboardConfig,
   onCommands?: (commands: Command[]) => void,
+  keymaps: Keymaps = DEFAULT_KEYMAPS,
 ): MachineState {
   const [state, setState] = useState<MachineState>(() => applyConfig(initialState(), config));
 
@@ -44,9 +56,12 @@ export function useKeyboard(
   // replay an updater, and replaying it would emit the same command twice.
   const stateRef = useRef(state);
   const onCommandsRef = useRef(onCommands);
+  const keymapsRef = useRef(keymaps);
+  const listIdsRef = useRef<Partial<Record<Panel, string | undefined>>>({});
 
   useEffect(() => {
     onCommandsRef.current = onCommands;
+    keymapsRef.current = keymaps;
   });
 
   const commit = useCallback((next: MachineState): void => {
@@ -57,7 +72,7 @@ export function useKeyboard(
   useEffect(() => {
     function handleKeyDown(nativeEvent: KeyboardEvent): void {
       const event = normalizeEvent(nativeEvent);
-      const step = reduce(stateRef.current, event);
+      const step = reduce(stateRef.current, event, keymapsRef.current);
 
       // Only a key the machine actually answers is worth stealing: elsewhere the shortcut
       // would be inert *and* blocked, which is worse than leaving it to the browser.
@@ -75,16 +90,27 @@ export function useKeyboard(
   }, [commit]);
 
   useEffect(() => {
-    commit(applyConfig(stateRef.current, config));
+    let next = applyConfig(stateRef.current, config);
+    for (const panel of PANELS) {
+      const listId = config[panel].listId;
+      if (listId !== listIdsRef.current[panel]) {
+        listIdsRef.current[panel] = listId;
+        next = setCursor(next, panel, 0);
+      }
+    }
+    commit(next);
     // Compared by value: an inline config literal would loop on identity.
   }, [
     commit,
     config.tree.itemCount,
     config.tree.pageSize,
+    config.tree.listId,
     config.diff.itemCount,
     config.diff.pageSize,
+    config.diff.listId,
     config.comments.itemCount,
     config.comments.pageSize,
+    config.comments.listId,
   ]);
 
   return state;

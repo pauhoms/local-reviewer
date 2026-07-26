@@ -5,9 +5,13 @@ use std::path::{Path, PathBuf};
 use super::{DirEntryInfo, GitError, GitResult};
 
 pub fn browse_dir(path: &str) -> GitResult<Vec<DirEntryInfo>> {
-    let home = home_from_env(std::env::var_os("HOME"))?;
+    let home = home_dir()?;
     let resolved = resolve_under_home(path, &home)?;
     list_directories(&resolved)
+}
+
+pub(crate) fn home_dir() -> GitResult<PathBuf> {
+    home_from_env(std::env::var_os("HOME"))
 }
 
 /// `$HOME` is the only anchor the browser has, so its absence is a failure of

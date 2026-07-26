@@ -1,7 +1,19 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { CommitInfo, DirEntryInfo, FileDiff, Scope, Side } from "./types";
+import type { CommitInfo, DirEntryInfo, FileDiff, Scope, Side, StartupInfo } from "./types";
 
 /** The only module that knows about `invoke`: the whole git layer goes through here. */
+export function getStartup(): Promise<StartupInfo> {
+  return invoke<StartupInfo>("get_startup");
+}
+
+export function listRecents(limit: number): Promise<string[]> {
+  return invoke<string[]>("list_recents", { limit });
+}
+
+export function recordRecent(repo: string): Promise<void> {
+  return invoke<void>("record_recent", { repo });
+}
+
 export function getDiff(scope: Scope): Promise<FileDiff[]> {
   return invoke<FileDiff[]>("get_diff", { scope });
 }

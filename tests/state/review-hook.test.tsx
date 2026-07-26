@@ -1,7 +1,10 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { act, render, screen } from "@testing-library/react";
+import type { Scope } from "@/ipc/types";
 import { reviewStore, useReviewState } from "@/state/review";
 import { sampleFiles } from "../helpers/fixtures";
+
+const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/reviewv4" };
 
 function FileList(): JSX.Element {
   const state = useReviewState();
@@ -23,7 +26,7 @@ function selected(): string | null {
   return marked?.textContent ?? null;
 }
 
-afterEach(() => act(() => reviewStore.setFiles([])));
+afterEach(() => act(() => reviewStore.open(SCOPE, [])));
 
 describe("useReviewState", () => {
   it("starts on the empty state of the store", () => {
@@ -35,7 +38,7 @@ describe("useReviewState", () => {
   it("re-renders when the store takes in the files", () => {
     render(<FileList />);
 
-    act(() => reviewStore.setFiles(sampleFiles));
+    act(() => reviewStore.open(SCOPE, sampleFiles));
 
     expect(screen.getAllByRole("listitem").map((item) => item.textContent)).toEqual(
       sampleFiles.map((file) => file.path),
@@ -45,7 +48,7 @@ describe("useReviewState", () => {
 
   it("re-renders when the selected file changes", () => {
     render(<FileList />);
-    act(() => reviewStore.setFiles(sampleFiles));
+    act(() => reviewStore.open(SCOPE, sampleFiles));
 
     act(() => reviewStore.selectFile(sampleFiles[2].path));
 

@@ -121,6 +121,22 @@ pub(crate) fn ensure_ref(repo: &str, reference: &str) -> GitResult<()> {
     }
 }
 
+/// Stricter than `ensure_ref`: a blob or a tree resolves as a ref but is not
+/// something to review, and letting it through only defers the failure to
+/// `git diff`, whose 40-line usage text would land on the error screen.
+pub(crate) fn ensure_commit(repo: &str, reference: &str) -> GitResult<()> {
+    if ref_exists(repo, &format!("{reference}^{{commit}}")) {
+        return Ok(());
+    }
+    // A blob or a tree is there, just not reviewable: telling the user it does
+    // not exist would send them hunting for a typo that is not the problem.
+    if ref_exists(repo, reference) {
+        Err(GitError::NotACommit(reference.to_string()))
+    } else {
+        Err(GitError::BadRef(reference.to_string()))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -124,3 +124,167 @@ body {
 .panel[data-active="true"] .panel-list li[data-cursor="true"] {
   box-shadow: inset 3px 0 0 var(--accent);
 }
+
+.scope-summary {
+  margin-left: auto;
+  margin-right: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.app-message {
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-align: center;
+}
+
+.start-panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  flex: 1;
+  min-height: 0;
+}
+
+.start-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding-bottom: 0.5rem;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+}
+
+.start-panel:last-child {
+  border-right: none;
+}
+
+.start-panel[data-active="true"] {
+  background: var(--bg-panel-active);
+  box-shadow: inset 0 0 0 1px var(--border-active);
+}
+
+.start-panel h2 {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.start-panel[data-active="true"] h2 {
+  color: var(--text);
+}
+
+.start-panel h3 {
+  margin: 0.75rem 0 0.25rem;
+  padding: 0 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+}
+
+.start-path,
+.start-empty {
+  margin: 0.5rem 0;
+  padding: 0 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.start-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+}
+
+.start-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  overflow: hidden;
+}
+
+.start-list li[aria-selected="true"] {
+  background: var(--selection-bg);
+  color: var(--text);
+}
+
+.start-list li[data-marked="true"] {
+  box-shadow: inset 3px 0 0 var(--accent-visual);
+}
+
+.start-list .commit-hash {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--accent);
+}
+
+.start-list .commit-subject,
+.start-list .start-path,
+.start-list .start-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badge {
+  padding: 0 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-size: 0.7rem;
+  color: var(--accent-insert);
+}
+
+.start-notice {
+  margin: 0;
+  padding: 0.4rem 1rem;
+  font-size: 0.8rem;
+  color: var(--accent-visual);
+  border-top: 1px solid var(--border);
+}
+
+.start-help {
+  padding: 0.4rem 1rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  background: var(--bg-panel);
+  border-top: 1px solid var(--border);
+}
+
+.empty-scope {
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  text-align: center;
+}
+
+.empty-headline {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.empty-detail {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.empty-hint {
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+kbd {
+  padding: 0 0.3rem;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+}

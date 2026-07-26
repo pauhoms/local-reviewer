@@ -117,6 +117,14 @@ pub enum GitError {
     PathOutsideRepo(String),
     #[error("la referencia «{0}» no existe en este repositorio")]
     BadRef(String),
+    #[error("la referencia «{0}» no apunta a un commit")]
+    NotACommit(String),
+    #[error("opción desconocida «{0}». Uso: reviewer [<commit>|<a>..<b>]")]
+    UnknownOption(String),
+    #[error("el argumento «{0}» no es texto válido")]
+    NonUtf8Argument(String),
+    #[error("sobra el argumento «{0}»: solo se revisa un alcance a la vez. Uso: reviewer [<commit>|<a>..<b>]")]
+    UnexpectedArgument(String),
     #[error("git falló: {0}")]
     CommandFailed(String),
     #[error("no se pudo leer {path}: {source}")]

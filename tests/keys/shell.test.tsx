@@ -1,7 +1,9 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "@/App";
+import { configureIpc } from "../helpers/ipc-mock";
+import { sampleFiles } from "../helpers/fixtures";
 
 type PanelName = "tree" | "diff" | "comments";
 
@@ -30,9 +32,27 @@ function activePanels(): PanelName[] {
   return names.filter((name) => panel(name).getAttribute("data-active") === "true");
 }
 
+vi.mock("@/ipc/client", () => import("../helpers/ipc-mock"));
+
+const SCOPE = { kind: "worktree", repo: "/repo" } as const;
+
+beforeEach(() => {
+  configureIpc({
+    startup: { scope: SCOPE, home: "/home/dev" },
+    diff: sampleFiles,
+  });
+});
+
+// The shell only exists once a scope resolved, and that resolution is async
+// since phase 3 routes App through get_startup.
+async function renderShell(): Promise<void> {
+  render(<App />);
+  await screen.findByRole("region", { name: /^1 ÁRBOL/ });
+}
+
 describe("three panel shell", () => {
-  it("TS-13: renders the three panels with their titles and a placeholder list each", () => {
-    render(<App />);
+  it("TS-13: renders the three panels with their titles and a placeholder list each", async () => {
+    await renderShell();
 
     expect(screen.getByRole("heading", { name: TITLES.tree })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: TITLES.diff })).toBeInTheDocument();
@@ -52,7 +72,7 @@ describe("three panel shell", () => {
   });
 
   it("TS-13: 1/2/3 move the active mark from panel to panel", async () => {
-    render(<App />);
+    await renderShell();
     const user = userEvent.setup();
 
     await user.keyboard("2");
@@ -66,7 +86,7 @@ describe("three panel shell", () => {
   });
 
   it("TS-13: j and k move the cursor of the active panel only", async () => {
-    render(<App />);
+    await renderShell();
     const user = userEvent.setup();
 
     await user.keyboard("1jj");
@@ -82,7 +102,7 @@ describe("three panel shell", () => {
   });
 
   it("TS-13: every panel keeps its own cursor when coming back to it", async () => {
-    render(<App />);
+    await renderShell();
     const user = userEvent.setup();
 
     await user.keyboard("2jj");
@@ -100,7 +120,7 @@ describe("three panel shell", () => {
   });
 
   it("TS-13: gg and G jump to the first and last item of the active panel", async () => {
-    render(<App />);
+    await renderShell();
     const user = userEvent.setup();
 
     await user.keyboard("2");
@@ -112,7 +132,7 @@ describe("three panel shell", () => {
   });
 
   it("TS-13: v shows visual mode and Esc goes back to normal", async () => {
-    render(<App />);
+    await renderShell();
     const user = userEvent.setup();
 
     await user.keyboard("2v");
@@ -135,7 +155,7 @@ describe("three panel shell", () => {
     };
     window.addEventListener("keydown", spy);
     try {
-      render(<App />);
+      await renderShell();
       const user = userEvent.setup();
 
       await user.keyboard("2");

@@ -1,96 +1,99 @@
-import { selectionRange } from "./keys/selection";
-import { useKeyboard } from "./keys/useKeyboard";
-import type { Mode, Panel, Selection } from "./keys/types";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { getDiff, getStartup, recordRecent } from "./ipc/client";
+import { errorMessage } from "./ipc/errors";
+import type { Scope } from "./ipc/types";
+import EmptyScope from "./screens/EmptyScope";
+import ErrorScreen from "./screens/ErrorScreen";
+import ReviewShell from "./screens/ReviewShell";
+import StartScreen from "./screens/StartScreen";
+import { reviewStore, useReviewState } from "./state/review";
 
-const PANEL_ORDER: Panel[] = ["tree", "diff", "comments"];
+type Route =
+  | { view: "loading" }
+  | { view: "failed"; message: string; repo: string | null }
+  | { view: "pick"; repo: string | null }
+  | { view: "review" }
+  | { view: "empty" };
 
-const PANEL_TITLES: Record<Panel, string> = {
-  tree: "1 ÁRBOL",
-  diff: "2 DIFF",
-  comments: "3 COMENTARIOS",
-};
-
-/** Placeholder lists until the real panels (fases 4-6) render actual review data. */
-const PANEL_ITEMS: Record<Panel, string[]> = {
-  tree: ["item 1", "item 2", "item 3", "item 4"],
-  diff: ["línea 1", "línea 2", "línea 3", "línea 4", "línea 5"],
-  comments: ["comentario 1", "comentario 2", "comentario 3"],
-};
-
-const MODE_LABELS: Record<Mode, string> = {
-  normal: "NORMAL",
-  visual: "VISUAL",
-  insert: "INSERT",
-};
-
-interface PanelView {
-  name: Panel;
-  cursor: number;
-  active: boolean;
-  range: Selection | null;
-}
-
-function isSelected(index: number, cursor: number, range: Selection | null): boolean {
-  if (!range) return index === cursor;
-  const { from, to } = selectionRange(range);
-  return index >= from && index <= to;
-}
-
-function renderPanel({ name, cursor, active, range }: PanelView): JSX.Element {
-  const title = PANEL_TITLES[name];
+function loadingScreen(): JSX.Element {
   return (
-    <section
-      key={name}
-      className="panel"
-      aria-label={title}
-      aria-current={active}
-      data-active={active}
-    >
-      <h2>{title}</h2>
-      <ul role="listbox" className="panel-list">
-        {PANEL_ITEMS[name].map((item, index) => (
-          <li
-            key={item}
-            role="option"
-            aria-selected={isSelected(index, cursor, range)}
-            data-cursor={index === cursor}
-          >
-            {item}
-          </li>
-        ))}
-      </ul>
-    </section>
+    <div className="app app-message">
+      <p role="status">Abriendo AI Code Reviewer…</p>
+    </div>
   );
 }
 
 export default function App(): JSX.Element {
-  const state = useKeyboard({
-    tree: { itemCount: PANEL_ITEMS.tree.length, pageSize: PANEL_ITEMS.tree.length },
-    diff: { itemCount: PANEL_ITEMS.diff.length, pageSize: PANEL_ITEMS.diff.length },
-    comments: { itemCount: PANEL_ITEMS.comments.length, pageSize: PANEL_ITEMS.comments.length },
-  });
+  const [home, setHome] = useState("");
+  const [route, setRoute] = useState<Route>({ view: "loading" });
+  const { scope } = useReviewState();
 
-  const range = state.mode === "visual" ? state.selection : null;
+  // Only the scope asked for last may open: while a slow diff is in flight the
+  // picker is still on screen, and its answer must not replace a newer one.
+  const scopeRequest = useRef(0);
 
-  return (
-    <div className="app">
-      <header className="app-header">
-        <h1>AI Code Reviewer</h1>
-        <span className="mode-indicator" data-mode={state.mode} aria-live="polite">
-          {MODE_LABELS[state.mode]}
-        </span>
-      </header>
-      <div className="panels">
-        {PANEL_ORDER.map((name) => {
-          const active = state.activePanel === name;
-          return renderPanel({
-            name,
-            cursor: state.panels[name].cursor,
-            active,
-            range: active ? range : null,
-          });
-        })}
-      </div>
-    </div>
-  );
+  const openScope = useCallback((chosen: Scope): void => {
+    const request = (scopeRequest.current += 1);
+    getDiff(chosen)
+      .then((files) => {
+        if (scopeRequest.current !== request) return;
+        // Only a review that opened belongs in the recents, and best effort at
+        // that: a repo the app cannot remember is still perfectly reviewable.
+        recordRecent(chosen.repo).catch(() => undefined);
+        reviewStore.open(chosen, files);
+        setRoute(files.length > 0 ? { view: "review" } : { view: "empty" });
+      })
+      .catch((error: unknown) => {
+        if (scopeRequest.current !== request) return;
+        setRoute({
+          view: "failed",
+          message: `No se pudieron leer los cambios: ${errorMessage(error)}`,
+          repo: chosen.repo,
+        });
+      });
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    getStartup()
+      .then((info) => {
+        if (!alive) return;
+        setHome(info.home);
+        if (info.scope) openScope(info.scope);
+        else setRoute({ view: "pick", repo: null });
+      })
+      .catch((error: unknown) => {
+        if (!alive) return;
+        setRoute({
+          view: "failed",
+          message: `No se pudo arrancar la revisión: ${errorMessage(error)}`,
+          repo: null,
+        });
+      });
+    return () => {
+      alive = false;
+    };
+  }, [openScope]);
+
+  switch (route.view) {
+    case "loading":
+      return loadingScreen();
+    case "failed":
+      return (
+        <ErrorScreen
+          message={route.message}
+          onBack={() => setRoute({ view: "pick", repo: route.repo })}
+        />
+      );
+    case "pick":
+      return <StartScreen home={home} initialRepo={route.repo} onOpen={openScope} />;
+    case "review":
+      return scope === null ? loadingScreen() : <ReviewShell scope={scope} />;
+    case "empty":
+      return scope === null ? (
+        loadingScreen()
+      ) : (
+        <EmptyScope scope={scope} onBack={() => setRoute({ view: "pick", repo: scope.repo })} />
+      );
+  }
 }

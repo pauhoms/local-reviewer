@@ -85,6 +85,14 @@ const deleteItem: Binding = ({ panel, panelState }) => ({
   index: panelState.cursor,
 });
 
+const descend: Binding = ({ panel, panelState }) => ({
+  type: "Descend",
+  panel,
+  index: panelState.cursor,
+});
+
+const ascend: Binding = ({ panel }) => ({ type: "Ascend", panel });
+
 const enterVisual: Binding = () => ({ type: "EnterVisual" });
 
 const extendDown: Binding = ({ panelState, selection }) => {
@@ -171,6 +179,35 @@ const VISUAL_PANELS: PanelKeymaps = {
 export const DEFAULT_KEYMAPS: Keymaps = {
   normal: { global: GLOBAL_KEYMAP, panels: NORMAL_PANELS },
   visual: { global: GLOBAL_KEYMAP, panels: VISUAL_PANELS },
+  insert: { global: { Escape: escape }, panels: {} },
+};
+
+/** The picker: three lists, one of which is a directory tree to walk. */
+const START_PANELS: PanelKeymaps = {
+  tree: {
+    j: moveDown,
+    k: moveUp,
+    Enter: confirm,
+  },
+  diff: {
+    j: moveDown,
+    k: moveUp,
+    Enter: confirm,
+    l: descend,
+    h: ascend,
+  },
+  comments: {
+    j: moveDown,
+    k: moveUp,
+    Enter: confirm,
+  },
+};
+
+export const START_KEYMAPS: Keymaps = {
+  normal: { global: GLOBAL_KEYMAP, panels: START_PANELS },
+  // No row of the picker enters visual or insert; these tables only keep Esc
+  // answering if the app ever lands in one of them.
+  visual: { global: GLOBAL_KEYMAP, panels: {} },
   insert: { global: { Escape: escape }, panels: {} },
 };
 

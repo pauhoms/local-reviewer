@@ -43,6 +43,12 @@ export type Scope =
 
 export type Side = "old" | "new";
 
+export interface StartupInfo {
+  /** The scope the command line resolved, or `null` when the user must pick one. */
+  scope: Scope | null;
+  home: string;
+}
+
 export interface DirEntryInfo {
   name: string;
   path: string;

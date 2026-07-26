@@ -20,6 +20,8 @@ export type Command =
   | { type: "Escape" }
   | { type: "CreateComment"; panel: Panel; from: number; to: number }
   | { type: "Confirm"; panel: Panel; index: number }
+  | { type: "Descend"; panel: Panel; index: number }
+  | { type: "Ascend"; panel: Panel }
   | { type: "DeleteItem"; panel: Panel; index: number }
   | { type: "ToggleFold"; panel: Panel; index: number; open: boolean };
 

@@ -1,22 +1,24 @@
 import { useSyncExternalStore } from "react";
-import type { FileDiff } from "@/ipc/types";
+import type { FileDiff, Scope } from "@/ipc/types";
 
-/** Filled in by phase 6; kept as `unknown` here since the shape isn't decided yet. */
 export interface ReviewState {
+  /** What the review is about; every panel reads it from here, not from a prop chain. */
+  scope: Scope | null;
   files: FileDiff[];
   selectedPath: string | null;
+  /** Filled in by phase 6; kept as `unknown` here since the shape isn't decided yet. */
   comments: unknown[];
 }
 
 export interface ReviewStore {
   getState: () => ReviewState;
   subscribe: (listener: () => void) => () => void;
-  setFiles: (files: FileDiff[]) => void;
+  open: (scope: Scope, files: FileDiff[]) => void;
   selectFile: (path: string) => void;
 }
 
 function emptyState(): ReviewState {
-  return { files: [], selectedPath: null, comments: [] };
+  return { scope: null, files: [], selectedPath: null, comments: [] };
 }
 
 export function createReviewStore(): ReviewStore {
@@ -33,8 +35,8 @@ export function createReviewStore(): ReviewStore {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
-    setFiles: (files) => {
-      state = { ...state, files, selectedPath: files[0]?.path ?? null };
+    open: (scope, files) => {
+      state = { ...state, scope, files, selectedPath: files[0]?.path ?? null };
       emit();
     },
     selectFile: (path) => {

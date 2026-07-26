@@ -54,6 +54,13 @@ export function setItemCount(state: MachineState, panel: Panel, itemCount: numbe
   }));
 }
 
+export function setCursor(state: MachineState, panel: Panel, cursor: number): MachineState {
+  return updatePanel(state, panel, (panelState) => ({
+    ...panelState,
+    cursor: clamp(cursor, panelState.itemCount),
+  }));
+}
+
 export function setPageSize(state: MachineState, panel: Panel, pageSize: number): MachineState {
   return updatePanel(state, panel, (panelState) => ({ ...panelState, pageSize }));
 }
@@ -101,6 +108,8 @@ function applyCommand(state: MachineState, command: Command): MachineState {
     case "CreateComment":
       return enterInsert({ ...state, selection: null });
     case "Confirm":
+    case "Descend":
+    case "Ascend":
     case "DeleteItem":
     case "ToggleFold":
       return state;

@@ -20,6 +20,7 @@ tauri = { version = "2", features = [], optional = true }
 tauri-plugin-clipboard-manager = { version = "2", optional = true }
 
 [dev-dependencies]
+libc = "0.2"
 tempfile = "3"
 
 [features]
