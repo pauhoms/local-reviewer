@@ -80,7 +80,11 @@ explicar el qué, el código está mal escrito. Nada de comentarios de sección 
 
 ## Tests
 
-- **Rust**: `cd src-tauri && cargo test`. Los tests de integración viven en
+- **Rust**: `cd src-tauri && cargo test`. Las deps de Tauri viven tras la feature
+  `app` (activada por defecto), así que `cargo test --no-default-features`
+  ejercita `git/`, `review/` y `export.rs` sin compilar el webview: es el bucle
+  rápido. El completo se corre antes de cerrar fase.
+  Los tests de integración viven en
   `src-tauri/tests/`. Todo test de git crea un **repo temporal** con
   `tests/helpers/git_fixture.rs` (`tempfile` + `git init`): **nunca** se toca un
   repo real ni el propio repo del proyecto.
