@@ -36,12 +36,33 @@ function highlighter(): Promise<HighlighterCore> {
       themes: [import("shiki/themes/github-dark.mjs")],
       langs: [import("shiki/langs/typescript.mjs"), import("shiki/langs/php.mjs")],
       engine: createJavaScriptRegexEngine(),
-    }).catch((error: unknown) => {
-      loading = null;
-      throw error;
-    });
+    })
+      .then(warmUp)
+      .catch((error: unknown) => {
+        loading = null;
+        throw error;
+      });
   }
   return loading;
+}
+
+/**
+ * Registering a grammar does not compile its patterns; the first file to be
+ * tokenized pays for that, and the TextMate tokenizer underneath gives up on a
+ * line it cannot finish in time — leaving it half coloured rather than failing.
+ * Paying it here on one throwaway line keeps that cost off the first real file.
+ */
+async function warmUp(shiki: HighlighterCore): Promise<HighlighterCore> {
+  // Enough shapes to reach the patterns a real file needs: keyword, annotated
+  // binding, string, call and block comment.
+  const samples: Record<Language, string> = {
+    typescript: '/* c */\nconst a: number = f("s");\nexport function g(): void {}\n',
+    php: '<?php\n/* c */\nclass A { public function g(string $s): int { return 1; } }\n',
+  };
+  for (const lang of ["typescript", "php"] as const) {
+    shiki.codeToTokens(samples[lang], { lang, theme: THEME });
+  }
+  return shiki;
 }
 
 /**

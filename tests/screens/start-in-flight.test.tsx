@@ -233,6 +233,9 @@ describe("a screen that is still loading does not claim to be empty", () => {
 
     render(<App />);
     await screen.findByRole("region", { name: BROWSER });
+    // The region exists before the effect settles it, so under load the panel
+    // is caught mid-render still saying it reads. Wait for the settled state.
+    await within(region(BROWSER)).findByText(/no se pudo determinar tu directorio personal/i);
 
     expect(within(region(BROWSER)).queryByText(/Leyendo el directorio/i)).toBeNull();
     expect(ipc.browseDir).not.toHaveBeenCalled();

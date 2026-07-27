@@ -101,6 +101,8 @@ afterEach(() => {
 });
 
 describe("the diff keeps the cursor on screen, measured in pixels", () => {
+  // Forty keystrokes with a geometry assertion each: half a second when the
+  // machine is idle, well past the default budget when it is not.
   it("holds it there while walking down a file of many hunks", async () => {
     const user = await boot(manyHunks("src/many.ts", 20, 3));
 
@@ -108,7 +110,7 @@ describe("the diff keeps the cursor on screen, measured in pixels", () => {
       await user.keyboard("j");
       expectCursorOnScreen(`tras ${step + 1} pulsaciones de j`);
     }
-  });
+  }, 30_000);
 
   it("holds it there on G, on gg and after half a page", async () => {
     const user = await boot(manyHunks("src/many.ts", 20, 3));
