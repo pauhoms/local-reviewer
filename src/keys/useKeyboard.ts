@@ -118,7 +118,11 @@ export function useKeyboard(
       // Only a key the machine actually answers is worth stealing: elsewhere the shortcut
       // would be inert *and* blocked, which is worse than leaving it to the browser.
       const answered = step.commands.length > 0 || step.state.pending !== null;
-      if (answered && stealsBrowserDefault(event) && nativeEvent.cancelable) {
+      // The key that opens the editor focuses it before the browser is done with
+      // the event, so its own character would land inside the field it opened.
+      const opensEditor = current.mode !== "insert" && step.state.mode === "insert";
+      const steal = opensEditor || (answered && stealsBrowserDefault(event));
+      if (steal && nativeEvent.cancelable) {
         nativeEvent.preventDefault();
       }
 

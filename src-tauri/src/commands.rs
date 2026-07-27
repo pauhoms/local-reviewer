@@ -1,6 +1,7 @@
 use crate::cli::{self, Startup, StartupInfo};
 use crate::git::{self, CommitInfo, DirEntryInfo, FileDiff, Scope, Side};
-use crate::review::recents;
+use crate::review::model::Review;
+use crate::review::{recents, store};
 
 #[tauri::command]
 pub fn get_startup(startup: tauri::State<'_, Startup>) -> Result<StartupInfo, String> {
@@ -35,4 +36,14 @@ pub fn browse_dir(path: String) -> Result<Vec<DirEntryInfo>, String> {
 #[tauri::command]
 pub fn read_blob(scope: Scope, path: String, side: Side) -> Result<String, String> {
     git::blob::read_blob(&scope, &path, side).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn load_review(scope: Scope) -> Result<Option<Review>, String> {
+    store::load(&scope).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn save_review(review: Review) -> Result<(), String> {
+    store::save(&review).map_err(|e| e.to_string())
 }

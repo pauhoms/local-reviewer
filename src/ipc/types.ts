@@ -43,6 +43,24 @@ export type Scope =
 
 export type Side = "old" | "new";
 
+export type DiffView = "unified" | "split";
+
+/** Anchored to (file, side, first line, last line); the numbers are the ones of `side`. */
+export interface Comment {
+  id: string;
+  path: string;
+  side: Side;
+  from: number;
+  to: number;
+  text: string;
+}
+
+export interface Review {
+  scope: Scope;
+  comments: Comment[];
+  view: DiffView;
+}
+
 export interface StartupInfo {
   /** The scope the command line resolved, or `null` when the user must pick one. */
   scope: Scope | null;

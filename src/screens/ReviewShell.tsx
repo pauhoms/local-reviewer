@@ -1,24 +1,23 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { nextCommentId } from "@/comments/id";
+import { anchorFor, diffLines, rowOfLine } from "@/diff/anchor";
 import { countDiffLines } from "@/diff/rows";
 import { DEFAULT_PAGE_SIZE } from "@/diff/window";
 import type { Scope } from "@/ipc/types";
 import { reviewKeymaps } from "@/keys/keymap";
 import type { DiffMetrics } from "@/keys/keymap";
-import { selectionRange } from "@/keys/selection";
-import type { Command, Mode, Selection } from "@/keys/types";
+import type { Command, Mode } from "@/keys/types";
 import { useKeyboard } from "@/keys/useKeyboard";
+import CommentsPanel from "@/panels/CommentsPanel";
 import DiffPanel from "@/panels/DiffPanel";
 import TreePanel from "@/panels/TreePanel";
+import { startAutosave } from "@/state/persist";
 import { commentCountsByPath, reviewStore, selectedFile, useReviewState } from "@/state/review";
+import type { ReviewComment } from "@/state/review";
 import { buildTree, diffTotals, flatten, foldRows } from "@/tree/build-tree";
-import type { FlatRow, TreeNode } from "@/tree/build-tree";
+import type { FlatRow } from "@/tree/build-tree";
 import { basename } from "./paths";
 import { scopeLabel } from "./scope-label";
-
-const COMMENTS_TITLE = "3 COMENTARIOS";
-
-/** Placeholder list until the comments panel (fase 6) renders actual comments. */
-const COMMENT_ITEMS = ["comentario 1", "comentario 2", "comentario 3"];
 
 const MODE_LABELS: Record<Mode, string> = {
   normal: "NORMAL",
@@ -30,56 +29,45 @@ interface ReviewShellProps {
   scope: Scope;
 }
 
-interface CommentsView {
-  cursor: number;
-  active: boolean;
-  range: Selection | null;
+/** The comment the `c` key just anchored, or `null` when the range holds no line. */
+function commentForRange(from: number, to: number): ReviewComment | null {
+  const { files, selectedPath } = reviewStore.getState();
+  const file = selectedFile(files, selectedPath);
+  if (!file) return null;
+  const anchor = anchorFor(diffLines(file), from, to);
+  if (!anchor) return null;
+  return { id: nextCommentId(), path: file.path, text: "", ...anchor };
 }
 
-function isSelected(index: number, cursor: number, range: Selection | null): boolean {
-  if (!range) return index === cursor;
-  const { from, to } = selectionRange(range);
-  return index >= from && index <= to;
-}
-
-function renderComments({ cursor, active, range }: CommentsView): JSX.Element {
-  return (
-    <section
-      className="panel"
-      aria-label={COMMENTS_TITLE}
-      aria-current={active}
-      data-active={active}
-    >
-      <h2>{COMMENTS_TITLE}</h2>
-      <ul role="listbox" className="panel-list">
-        {COMMENT_ITEMS.map((item, index) => (
-          <li
-            key={item}
-            role="option"
-            aria-selected={isSelected(index, cursor, range)}
-            data-cursor={index === cursor}
-          >
-            {item}
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
+/** Row the diff has to land on to show the line a comment is anchored to. */
+function rowOfComment(comment: ReviewComment): number {
+  const file = selectedFile(reviewStore.getState().files, comment.path);
+  if (!file) return 0;
+  return rowOfLine(diffLines(file), comment.side, comment.from);
 }
 
 export default function ReviewShell({ scope }: ReviewShellProps): JSX.Element {
-  const { files, comments, selectedPath, collapsed, diffCursor } = useReviewState();
+  const { files, comments, selectedPath, collapsed, diffCursor, editing, foldedComments } =
+    useReviewState();
 
   // What the cursor walks: the folds and the file on show must not reset it.
   const listId = useMemo(() => files.map((file) => file.path).join("\n"), [files]);
 
   const file = useMemo(() => selectedFile(files, selectedPath), [files, selectedPath]);
-  const diffLines = useMemo(() => countDiffLines(file), [file]);
+  const diffLineCount = useMemo(() => countDiffLines(file), [file]);
 
   const tree = useMemo(() => buildTree(files), [files]);
   const rows = useMemo(() => flatten(tree, collapsed), [tree, collapsed]);
   const totals = useMemo(() => diffTotals(files), [files]);
   const commentCounts = useMemo(() => commentCountsByPath(comments), [comments]);
+  const editingComment = useMemo(
+    () => comments.find((comment) => comment.id === editing) ?? null,
+    [comments, editing],
+  );
+
+  // No save button: the review reaches its state file by itself, and what the
+  // store already holds when this mounts is what the disk holds.
+  useEffect(() => startAutosave(reviewStore).stop, []);
 
   // Read from the store, not from this render: a burst of keys folds and walks
   // faster than React re-renders, and every key must see the fold before it.
@@ -104,31 +92,68 @@ export default function ReviewShell({ scope }: ReviewShellProps): JSX.Element {
       pageSize: pageSizeRef.current,
     };
   }, []);
+  // And for panel 3: `dd` shortens the very list the next key of the burst walks.
+  const commentsNow = useCallback((): number => reviewStore.getState().comments.length, []);
 
   const keymaps = useMemo(
-    () => reviewKeymaps(() => foldRows(rowsNow()), diffNow),
-    [rowsNow, diffNow],
+    () => reviewKeymaps(() => foldRows(rowsNow()), diffNow, commentsNow),
+    [rowsNow, diffNow, commentsNow],
   );
 
   const handleCommands = useCallback(
     (commands: Command[]): void => {
       for (const command of commands) {
-        if (command.type === "MoveCursor" && command.panel === "diff") {
-          reviewStore.setDiffCursor(command.to);
-          continue;
-        }
-        // Only the diff has a range to extend, and extending it drags the cursor.
-        if (command.type === "ExtendSelection") {
-          reviewStore.setDiffCursor(command.to);
-          continue;
-        }
-        if (command.type !== "ToggleFold" && command.type !== "Confirm") continue;
-        if (command.panel !== "tree") continue;
-        const node: TreeNode | undefined = rowsNow()[command.index]?.node;
-        if (command.type === "ToggleFold" && node?.kind === "dir") {
-          reviewStore.toggleFold(node.path, command.open);
-        } else if (command.type === "Confirm" && node?.kind === "file") {
-          reviewStore.selectFile(node.path);
+        switch (command.type) {
+          case "MoveCursor":
+            if (command.panel === "diff") reviewStore.setDiffCursor(command.to);
+            break;
+          // Only the diff has a range to extend, and extending it drags the cursor.
+          case "ExtendSelection":
+            reviewStore.setDiffCursor(command.to);
+            break;
+          case "CreateComment": {
+            const fresh = commentForRange(command.from, command.to);
+            if (fresh) reviewStore.startComment(fresh);
+            break;
+          }
+          case "SaveComment":
+            reviewStore.saveEditing();
+            break;
+          // Leaving insert throws away the comment that was being written; in
+          // any other mode there is none, and this is a no-op.
+          case "Escape":
+            reviewStore.cancelEditing();
+            break;
+          case "Confirm": {
+            if (command.panel === "tree") {
+              const node = rowsNow()[command.index]?.node;
+              if (node?.kind === "file") reviewStore.selectFile(node.path);
+              break;
+            }
+            if (command.panel !== "comments") break;
+            const target = reviewStore.getState().comments[command.index];
+            if (target) reviewStore.openAt(target.path, rowOfComment(target));
+            break;
+          }
+          case "DeleteItem": {
+            if (command.panel !== "comments") break;
+            const target = reviewStore.getState().comments[command.index];
+            if (target) reviewStore.removeComment(target.id);
+            break;
+          }
+          case "ToggleFold": {
+            if (command.panel === "tree") {
+              const node = rowsNow()[command.index]?.node;
+              if (node?.kind === "dir") reviewStore.toggleFold(node.path, command.open);
+              break;
+            }
+            if (command.panel !== "comments") break;
+            const target = reviewStore.getState().comments[command.index];
+            if (target) reviewStore.toggleCommentFold(target.id, command.open);
+            break;
+          }
+          default:
+            break;
         }
       }
     },
@@ -139,11 +164,11 @@ export default function ReviewShell({ scope }: ReviewShellProps): JSX.Element {
     {
       tree: { itemCount: rows.length, pageSize: rows.length, listId },
       diff: {
-        itemCount: diffLines,
+        itemCount: diffLineCount,
         pageSize: diffPageSize,
         cursorNow: () => reviewStore.getState().diffCursor,
       },
-      comments: { itemCount: COMMENT_ITEMS.length, pageSize: COMMENT_ITEMS.length },
+      comments: { itemCount: comments.length, pageSize: comments.length },
     },
     handleCommands,
     keymaps,
@@ -179,11 +204,16 @@ export default function ReviewShell({ scope }: ReviewShellProps): JSX.Element {
           range={state.activePanel === "diff" ? range : null}
           onPageSize={handlePageSize}
         />
-        {renderComments({
-          cursor: state.panels.comments.cursor,
-          active: state.activePanel === "comments",
-          range: state.activePanel === "comments" ? range : null,
-        })}
+        <CommentsPanel
+          comments={comments}
+          cursor={state.panels.comments.cursor}
+          active={state.activePanel === "comments"}
+          folded={foldedComments}
+          editing={editingComment}
+          onEditorChange={(text) => {
+            if (editing !== null) reviewStore.setCommentText(editing, text);
+          }}
+        />
       </div>
     </div>
   );

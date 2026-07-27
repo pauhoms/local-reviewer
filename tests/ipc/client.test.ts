@@ -11,10 +11,12 @@ import {
   getStartup,
   listCommits,
   listRecents,
+  loadReview,
   readBlob,
   recordRecent,
+  saveReview,
 } from "@/ipc/client";
-import type { CommitInfo, DirEntryInfo, FileDiff, StartupInfo } from "@/ipc/types";
+import type { CommitInfo, DirEntryInfo, FileDiff, Review, StartupInfo } from "@/ipc/types";
 
 describe("ipc client", () => {
   beforeEach(() => {
@@ -98,5 +100,40 @@ describe("ipc client", () => {
       side: "new",
     });
     expect(result).toBe("const a = 1;\n");
+  });
+
+  it("loadReview invokes load_review with the scope", async () => {
+    const review: Review = {
+      scope: { kind: "worktree", repo: "/repo" },
+      comments: [{ id: "c1", path: "src/a.ts", side: "new", from: 3, to: 4, text: "nota" }],
+      view: "unified",
+    };
+    invokeMock.mockResolvedValue(review);
+
+    const result = await loadReview({ kind: "worktree", repo: "/repo" });
+
+    expect(invokeMock).toHaveBeenCalledWith("load_review", {
+      scope: { kind: "worktree", repo: "/repo" },
+    });
+    expect(result).toBe(review);
+  });
+
+  it("loadReview passes back the absence of a saved review as null", async () => {
+    invokeMock.mockResolvedValue(null);
+
+    expect(await loadReview({ kind: "worktree", repo: "/repo" })).toBeNull();
+  });
+
+  it("saveReview invokes save_review with the whole review", async () => {
+    const review: Review = {
+      scope: { kind: "commit", repo: "/repo", sha: "abc" },
+      comments: [],
+      view: "unified",
+    };
+    invokeMock.mockResolvedValue(undefined);
+
+    await saveReview(review);
+
+    expect(invokeMock).toHaveBeenCalledWith("save_review", { review });
   });
 });

@@ -280,9 +280,86 @@ body {
   text-overflow: ellipsis;
 }
 
-.diff-position {
+.diff-position,
+.comment-position {
   font-weight: 400;
   letter-spacing: 0;
+  color: var(--text-muted);
+}
+
+.comment-list {
+  flex: 0 1 auto;
+  overflow: auto;
+}
+
+.comment-entry {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  column-gap: 0.35rem;
+  white-space: normal;
+  border-bottom: 1px solid var(--border);
+}
+
+.comment-file {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.comment-range {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* Second row of the entry, under the fold marker: one line and no more. */
+.comment-summary {
+  grid-column: 2 / -1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+}
+
+.comment-editor {
+  display: flex;
+  flex-direction: column;
+  margin-top: auto;
+  border-top: 1px solid var(--border);
+}
+
+.comment-editor-title {
+  margin: 0;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.comment-editor-field {
+  min-height: 6rem;
+  margin: 0 0.75rem;
+  padding: 0.4rem;
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--accent-insert);
+  border-radius: 3px;
+  resize: none;
+}
+
+.comment-editor-field:focus {
+  outline: 1px solid var(--accent-insert);
+}
+
+.resume-review h1 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.resume-scope,
+.resume-count {
+  margin: 0;
+  font-size: 0.85rem;
   color: var(--text-muted);
 }
 

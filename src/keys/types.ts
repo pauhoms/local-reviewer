@@ -19,6 +19,7 @@ export type Command =
   | { type: "ExtendSelection"; from: number; to: number }
   | { type: "Escape" }
   | { type: "CreateComment"; panel: Panel; from: number; to: number }
+  | { type: "SaveComment" }
   | { type: "Confirm"; panel: Panel; index: number }
   | { type: "Descend"; panel: Panel; index: number }
   | { type: "Ascend"; panel: Panel }
@@ -41,6 +42,8 @@ export interface MachineState {
   activePanel: Panel;
   panels: Record<Panel, PanelState>;
   selection: Selection | null;
+  /** Panel the keyboard goes back to when insert ends, whichever way it ends. */
+  insertOrigin: Panel | null;
   pending: string | null;
   pendingAt: number | null;
 }

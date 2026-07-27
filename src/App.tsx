@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getDiff, getStartup, recordRecent } from "./ipc/client";
+import { getDiff, getStartup, loadReview, recordRecent } from "./ipc/client";
 import { errorMessage } from "./ipc/errors";
-import type { Scope } from "./ipc/types";
+import type { Comment, Scope } from "./ipc/types";
 import EmptyScope from "./screens/EmptyScope";
 import ErrorScreen from "./screens/ErrorScreen";
+import ResumeReview from "./screens/ResumeReview";
 import ReviewShell from "./screens/ReviewShell";
 import StartScreen from "./screens/StartScreen";
 import { reviewStore, useReviewState } from "./state/review";
@@ -12,6 +13,7 @@ type Route =
   | { view: "loading" }
   | { view: "failed"; message: string; repo: string | null }
   | { view: "pick"; repo: string | null }
+  | { view: "resume"; comments: Comment[] }
   | { view: "review" }
   | { view: "empty" };
 
@@ -35,13 +37,25 @@ export default function App(): JSX.Element {
   const openScope = useCallback((chosen: Scope): void => {
     const request = (scopeRequest.current += 1);
     getDiff(chosen)
-      .then((files) => {
+      // A state file that cannot be read costs the offer to resume, nothing
+      // more: the review opens all the same and the next save writes over it.
+      .then((files) =>
+        loadReview(chosen)
+          .catch(() => null)
+          .then((saved) => ({ files, saved })),
+      )
+      .then(({ files, saved }) => {
         if (scopeRequest.current !== request) return;
         // Only a review that opened belongs in the recents, and best effort at
         // that: a repo the app cannot remember is still perfectly reviewable.
         recordRecent(chosen.repo).catch(() => undefined);
         reviewStore.open(chosen, files);
-        setRoute(files.length > 0 ? { view: "review" } : { view: "empty" });
+        if (files.length === 0) {
+          setRoute({ view: "empty" });
+          return;
+        }
+        const waiting = saved?.comments ?? [];
+        setRoute(waiting.length > 0 ? { view: "resume", comments: waiting } : { view: "review" });
       })
       .catch((error: unknown) => {
         if (scopeRequest.current !== request) return;
@@ -87,6 +101,20 @@ export default function App(): JSX.Element {
       );
     case "pick":
       return <StartScreen home={home} initialRepo={route.repo} onOpen={openScope} />;
+    case "resume":
+      return scope === null ? (
+        loadingScreen()
+      ) : (
+        <ResumeReview
+          scope={scope}
+          commentCount={route.comments.length}
+          onResume={() => {
+            reviewStore.restoreComments(route.comments);
+            setRoute({ view: "review" });
+          }}
+          onDiscard={() => setRoute({ view: "review" })}
+        />
+      );
     case "review":
       return scope === null ? loadingScreen() : <ReviewShell scope={scope} />;
     case "empty":

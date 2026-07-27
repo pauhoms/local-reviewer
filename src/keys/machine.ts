@@ -28,6 +28,7 @@ export function initialState(): MachineState {
       comments: emptyPanelState(),
     },
     selection: null,
+    insertOrigin: null,
     pending: null,
     pendingAt: null,
   };
@@ -78,6 +79,17 @@ export function enterInsert(state: MachineState): MachineState {
   return { ...clearPending(state), mode: "insert" };
 }
 
+/** Writing is a detour: whoever ends it lands back on the panel it started from. */
+function leaveInsert(state: MachineState): MachineState {
+  return {
+    ...state,
+    mode: "normal",
+    selection: null,
+    activePanel: state.insertOrigin ?? state.activePanel,
+    insertOrigin: null,
+  };
+}
+
 /** Shift is left out on purpose: it already shows up in `event.key` (`G`, `?`, …). */
 function keyId(event: KeyEvent): string {
   // Vim ignores modifiers on <Esc>; releasing Ctrl late must not trap the user in insert.
@@ -111,11 +123,19 @@ function applyCommand(state: MachineState, command: Command): MachineState {
         (panelState) => ({ ...panelState, cursor: command.to }),
       );
     case "Escape":
-      if (state.mode === "insert") return { ...state, mode: "normal" };
+      if (state.mode === "insert") return leaveInsert(state);
       if (state.mode === "visual") return { ...state, mode: "normal", selection: null };
       return state;
+    case "SaveComment":
+      return state.mode === "insert" ? leaveInsert(state) : state;
     case "CreateComment":
-      return enterInsert({ ...state, selection: null });
+      // The comment is written in panel 3, so that is where the keyboard goes.
+      return enterInsert({
+        ...state,
+        selection: null,
+        activePanel: "comments",
+        insertOrigin: command.panel,
+      });
     case "Confirm":
     case "Descend":
     case "Ascend":

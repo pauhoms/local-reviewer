@@ -21,6 +21,8 @@ pub fn run(startup: cli::Startup) -> Result<(), tauri::Error> {
             commands::list_commits,
             commands::browse_dir,
             commands::read_blob,
+            commands::load_review,
+            commands::save_review,
         ])
         .run(tauri::generate_context!())
 }

@@ -4,6 +4,7 @@ import type {
   CommitInfo,
   DirEntryInfo,
   FileDiff,
+  Review,
   Scope,
   Side,
   StartupInfo,
@@ -18,6 +19,8 @@ export interface IpcFixture {
   commits: CommitInfo[];
   diff: FileDiff[] | ((scope: Scope) => FileDiff[]);
   blobs: Record<string, string>;
+  /** Reviews already on disk, one per scope, the way `.state/` holds them. */
+  reviews: Review[];
 }
 
 function defaults(): IpcFixture {
@@ -28,6 +31,7 @@ function defaults(): IpcFixture {
     commits: [],
     diff: [],
     blobs: {},
+    reviews: [],
   };
 }
 
@@ -68,6 +72,24 @@ export const readBlob = vi.fn(
     Promise.resolve(fixture.blobs[`${side}:${path}`] ?? ""),
 );
 
+/** The state file is one per scope, so the scope is the key of the fixture. */
+function sameScope(one: Scope, other: Scope): boolean {
+  return JSON.stringify(one) === JSON.stringify(other);
+}
+
+export const loadReview = vi.fn(
+  (scope: Scope): Promise<Review | null> =>
+    Promise.resolve(fixture.reviews.find((review) => sameScope(review.scope, scope)) ?? null),
+);
+
+export const saveReview = vi.fn((review: Review): Promise<void> => {
+  fixture.reviews = [
+    ...fixture.reviews.filter((known) => !sameScope(known.scope, review.scope)),
+    review,
+  ];
+  return Promise.resolve();
+});
+
 const MOCKS = [
   getStartup,
   listRecents,
@@ -76,6 +98,8 @@ const MOCKS = [
   listCommits,
   getDiff,
   readBlob,
+  loadReview,
+  saveReview,
 ];
 
 /** Resets every call log and replaces the fixture; call it before each render. */
@@ -88,6 +112,11 @@ export function recentsInFixture(): string[] {
   return [...fixture.recents];
 }
 
+/** What `.state/` holds right now, after whatever the app has autosaved. */
+export function reviewsInFixture(): Review[] {
+  return [...fixture.reviews];
+}
+
 /** Fails the typecheck if this mock ever drifts from the real IPC client. */
 export const __clientContract: typeof Client = {
   getStartup,
@@ -97,4 +126,6 @@ export const __clientContract: typeof Client = {
   listCommits,
   getDiff,
   readBlob,
+  loadReview,
+  saveReview,
 };

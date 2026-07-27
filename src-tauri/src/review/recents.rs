@@ -1,17 +1,13 @@
-use std::ffi::OsString;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Mutex;
 
-use super::{ReviewError, ReviewResult};
+use super::{reviews_dir, state_dir_in, write_state_file, ReviewResult};
 
 /// How many repositories the picker remembers. Beyond a screenful the list
 /// stops being a shortcut and becomes another thing to search.
 pub const MAX_RECENTS: usize = 10;
 
-const REVIEWS_DIR_ENV: &str = "REVIEWV4_REVIEWS_DIR";
-const STATE_DIR: &str = ".state";
 const STATE_FILE: &str = "recents.json";
 
 /// Moves `repo` to the front of the remembered list.
@@ -54,36 +50,12 @@ fn read_recents(reviews_dir: &Path) -> Vec<String> {
 }
 
 fn write_recents(reviews_dir: &Path, recents: &[String]) -> ReviewResult<()> {
-    let dir = reviews_dir.join(STATE_DIR);
-    let target = dir.join(STATE_FILE);
-    let io_error = |source: std::io::Error| ReviewError::Io {
-        path: target.to_string_lossy().into_owned(),
-        source,
-    };
-
-    fs::create_dir_all(&dir).map_err(io_error)?;
     let body = serde_json::to_string_pretty(recents)?;
-
-    // Same directory as the target so the rename stays inside one filesystem
-    // and lands as a single atomic step: a reader never sees a half file.
-    static NEXT: AtomicU32 = AtomicU32::new(0);
-    let temporary = dir.join(format!(
-        ".{STATE_FILE}.{}.{}.tmp",
-        std::process::id(),
-        NEXT.fetch_add(1, Ordering::Relaxed)
-    ));
-    fs::write(&temporary, body).map_err(io_error)?;
-    match fs::rename(&temporary, &target) {
-        Ok(()) => Ok(()),
-        Err(e) => {
-            let _ = fs::remove_file(&temporary);
-            Err(io_error(e))
-        }
-    }
+    write_state_file(&state_dir_in(reviews_dir), STATE_FILE, &body)
 }
 
 fn state_path(reviews_dir: &Path) -> PathBuf {
-    reviews_dir.join(STATE_DIR).join(STATE_FILE)
+    state_dir_in(reviews_dir).join(STATE_FILE)
 }
 
 fn decode(raw: &str) -> Vec<String> {
@@ -112,66 +84,14 @@ fn normalize(recents: Vec<String>) -> Vec<String> {
     seen
 }
 
-fn reviews_dir() -> ReviewResult<PathBuf> {
-    reviews_dir_from(
-        std::env::var_os(REVIEWS_DIR_ENV),
-        crate::git::browse::home_dir().ok(),
-    )
-}
-
-fn reviews_dir_from(
-    override_dir: Option<OsString>,
-    home: Option<PathBuf>,
-) -> ReviewResult<PathBuf> {
-    if let Some(dir) = override_dir.filter(|value| !value.is_empty()) {
-        return Ok(PathBuf::from(dir));
-    }
-    home.map(|home| home.join(".claude").join("reviews"))
-        .ok_or(ReviewError::NoReviewsDir)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::ffi::OsString;
+    use crate::review::ReviewError;
     use tempfile::TempDir;
 
     fn strings(list: &[&str]) -> Vec<String> {
         list.iter().map(|item| item.to_string()).collect()
-    }
-
-    #[test]
-    fn the_environment_override_wins_over_the_home_default() {
-        let dir = reviews_dir_from(
-            Some(OsString::from("/tmp/reviews")),
-            Some(PathBuf::from("/home/dev")),
-        )
-        .expect("an explicit reviews dir");
-
-        assert_eq!(dir, PathBuf::from("/tmp/reviews"));
-    }
-
-    #[test]
-    fn without_an_override_the_reviews_live_under_home() {
-        let dir = reviews_dir_from(None, Some(PathBuf::from("/home/dev"))).expect("home default");
-
-        assert_eq!(dir, PathBuf::from("/home/dev/.claude/reviews"));
-    }
-
-    #[test]
-    fn an_empty_override_is_treated_as_no_override() {
-        let dir = reviews_dir_from(Some(OsString::new()), Some(PathBuf::from("/home/dev")))
-            .expect("home default");
-
-        assert_eq!(dir, PathBuf::from("/home/dev/.claude/reviews"));
-    }
-
-    #[test]
-    fn with_neither_an_override_nor_a_home_there_is_nowhere_to_write() {
-        assert!(matches!(
-            reviews_dir_from(None, None),
-            Err(ReviewError::NoReviewsDir)
-        ));
     }
 
     #[test]

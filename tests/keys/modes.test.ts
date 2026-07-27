@@ -21,7 +21,9 @@ describe("visual to insert edge", () => {
     const typed = press(insert, "j", "k", "1", "g", "g");
     expect(typed.commands).toEqual([]);
     expect(typed.state.mode).toBe("insert");
-    expect(typed.state.activePanel).toBe("diff");
+    // `c` hands the focus to the editor, which lives in panel 3. Phase 2 left
+    // this open on purpose; phase 6 is what settles it.
+    expect(typed.state.activePanel).toBe("comments");
     expect(typed.state.panels.diff.cursor).toBe(1);
   });
 
@@ -145,11 +147,12 @@ describe("every panel has its own table in visual", () => {
 
 describe("the pending buffer is armed by the keymap alone", () => {
   it("only keys that start a declared row of the active panel arm the buffer", () => {
-    for (const armed of ["g", "d"]) {
+    // `z` joined the armed ones in phase 6: it opens the zc/zo fold rows.
+    for (const armed of ["g", "d", "z"]) {
       expect(press(base(), "3", armed).state.pending).toBe(armed);
     }
 
-    for (const inert of ["j", "k", "1", "Enter", "z", "G"]) {
+    for (const inert of ["j", "k", "1", "Enter", "G"]) {
       expect(press(base(), "3", inert).state.pending).toBeNull();
     }
   });

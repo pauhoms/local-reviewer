@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "@/App";
 import { configureIpc } from "../helpers/ipc-mock";
 import { sampleFiles } from "../helpers/fixtures";
+import { reviewStore } from "@/state/review";
 import { headIndex, panel, selectedIndexes } from "./helpers";
 
 interface SeenKey {
@@ -35,9 +36,22 @@ beforeEach(() => {
 
 // The shell only exists once a scope resolved, and that resolution is async
 // since phase 3 routes App through get_startup.
+/** Panel 3 shows its empty state with no comments, so the walkable list the
+ *  phase-2 shell asserts on only exists once the review has some. */
+function seedComments(): void {
+  act(() => {
+    reviewStore.restoreComments([
+      { id: "s1", path: "src/order/Order.ts", side: "new", from: 1, to: 2, text: "uno" },
+      { id: "s2", path: "src/order/Order.ts", side: "new", from: 3, to: 3, text: "dos" },
+      { id: "s3", path: "src/UserService.php", side: "new", from: 5, to: 6, text: "tres" },
+    ]);
+  });
+}
+
 async function renderShell(): Promise<void> {
   render(<App />);
   await screen.findByRole("region", { name: /^1 ÁRBOL/ });
+  seedComments();
 }
 
 describe("the shell shows the visual range", () => {

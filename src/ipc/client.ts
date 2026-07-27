@@ -1,5 +1,13 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { CommitInfo, DirEntryInfo, FileDiff, Scope, Side, StartupInfo } from "./types";
+import type {
+  CommitInfo,
+  DirEntryInfo,
+  FileDiff,
+  Review,
+  Scope,
+  Side,
+  StartupInfo,
+} from "./types";
 
 /** The only module that knows about `invoke`: the whole git layer goes through here. */
 export function getStartup(): Promise<StartupInfo> {
@@ -28,4 +36,13 @@ export function browseDir(path: string): Promise<DirEntryInfo[]> {
 
 export function readBlob(scope: Scope, path: string, side: Side): Promise<string> {
   return invoke<string>("read_blob", { scope, path, side });
+}
+
+/** `null` when this scope has no review saved yet. */
+export function loadReview(scope: Scope): Promise<Review | null> {
+  return invoke<Review | null>("load_review", { scope });
+}
+
+export function saveReview(review: Review): Promise<void> {
+  return invoke<void>("save_review", { review });
 }

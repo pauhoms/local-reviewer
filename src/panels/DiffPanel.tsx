@@ -165,7 +165,7 @@ export default function DiffPanel({
         {shown}
       </VirtualList>
       <footer className="panel-help">
-        j/k línea · gg/G extremos · Ctrl+d/Ctrl+u media página · v seleccionar
+        j/k línea · gg/G extremos · Ctrl+d/Ctrl+u media página · v seleccionar · c comentar
       </footer>
     </section>
   );

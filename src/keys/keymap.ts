@@ -124,11 +124,12 @@ const extendUp: Binding = ({ panelState, selection }) => {
   };
 };
 
-/** Which panel takes the focus once the comment editor exists is deferred to phase 6. */
 const createComment: Binding = ({ panel, selection }) => {
   if (!selection) return null;
   return { type: "CreateComment", panel, ...selectionRange(selection) };
 };
+
+const saveComment: Binding = () => ({ type: "SaveComment" });
 
 const switchPanel =
   (panel: Panel): Binding =>
@@ -171,7 +172,18 @@ const NORMAL_PANELS: PanelKeymaps = {
     G: jumpBottom,
     Enter: confirm,
     "d d": deleteItem,
+    "z c": foldClose,
+    "z o": foldOpen,
   },
+};
+
+/**
+ * The only rows insert has: `Esc` leaves and `Ctrl+Enter` saves. Everything
+ * else is text and belongs to the field, movement and creation included.
+ */
+const INSERT_GLOBAL: PanelKeymap = {
+  Escape: escape,
+  "Ctrl+Enter": saveComment,
 };
 
 /** Outside the diff there is no range to extend, so j/k stay plain movement. */
@@ -194,7 +206,7 @@ const VISUAL_PANELS: PanelKeymaps = {
 export const DEFAULT_KEYMAPS: Keymaps = {
   normal: { global: GLOBAL_KEYMAP, panels: NORMAL_PANELS },
   visual: { global: GLOBAL_KEYMAP, panels: VISUAL_PANELS },
-  insert: { global: { Escape: escape }, panels: {} },
+  insert: { global: INSERT_GLOBAL, panels: {} },
 };
 
 export type FoldRows = () => readonly FoldRow[];
@@ -303,22 +315,56 @@ function diffVisual(metricsNow: DiffMetricsNow): PanelKeymap {
   return {
     j: diffExtend(metricsNow, 1),
     k: diffExtend(metricsNow, -1),
-    c: createComment,
+    // A file with no lines on show has nothing to anchor to, and a comment that
+    // anchors to nothing would still drag the keyboard into the editor.
+    c: (ctx) => (metricsNow().lineCount === 0 ? null : createComment(ctx)),
+  };
+}
+
+/** How many comments the list holds right now. */
+export type CommentCountNow = () => number;
+
+function commentsNormal(countNow: CommentCountNow): PanelKeymap {
+  return {
+    j: ({ panel, panelState }) => ({
+      type: "MoveCursor",
+      panel,
+      to: clamp(panelState.cursor + 1, countNow()),
+    }),
+    k: ({ panel, panelState }) => ({
+      type: "MoveCursor",
+      panel,
+      to: clamp(panelState.cursor - 1, countNow()),
+    }),
+    "g g": jumpTop,
+    G: ({ panel }) => ({ type: "MoveCursor", panel, to: Math.max(0, countNow() - 1) }),
+    Enter: confirm,
+    "d d": deleteItem,
+    "z c": foldClose,
+    "z o": foldOpen,
   };
 }
 
 /**
- * The review tables. Both getters answer on the spot for the same reason: a
- * burst of keys arrives before React re-renders, and opening another file
- * changes the very lines the next key walks.
+ * The review tables. Every getter answers on the spot for the same reason: a
+ * burst of keys arrives before React re-renders, and opening another file — or
+ * deleting a comment — changes the very list the next key walks.
  */
-export function reviewKeymaps(rowsNow: FoldRows, diffNow: DiffMetricsNow): Keymaps {
+export function reviewKeymaps(
+  rowsNow: FoldRows,
+  diffNow: DiffMetricsNow,
+  commentsNow: CommentCountNow,
+): Keymaps {
   const folding = foldingKeymaps(rowsNow);
   return {
     ...folding,
     normal: {
       global: GLOBAL_KEYMAP,
-      panels: { ...folding.normal.panels, diff: diffNormal(diffNow) },
+      panels: {
+        ...folding.normal.panels,
+        diff: diffNormal(diffNow),
+        comments: commentsNormal(commentsNow),
+      },
     },
     visual: {
       global: GLOBAL_KEYMAP,
@@ -353,7 +399,7 @@ export const START_KEYMAPS: Keymaps = {
   // No row of the picker enters visual or insert; these tables only keep Esc
   // answering if the app ever lands in one of them.
   visual: { global: GLOBAL_KEYMAP, panels: {} },
-  insert: { global: { Escape: escape }, panels: {} },
+  insert: { global: INSERT_GLOBAL, panels: {} },
 };
 
 function tablesFor(keymaps: Keymaps, mode: Mode, panel: Panel): PanelKeymap[] {

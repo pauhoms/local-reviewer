@@ -5,9 +5,10 @@ import type { Command, MachineState } from "@/keys/types";
 import { base, key, pressWith } from "../keys/helpers";
 
 const NO_ROWS = () => [];
+const NO_COMMENTS = () => 0;
 
 function keymaps(metrics: DiffMetrics) {
-  return reviewKeymaps(NO_ROWS, () => metrics);
+  return reviewKeymaps(NO_ROWS, () => metrics, NO_COMMENTS);
 }
 
 /** The machine still believes the previous file: 20 lines and a page of 10. */
@@ -107,7 +108,7 @@ describe("the visual range grows over the file on show", () => {
 describe("the tree tables keep answering next to the diff ones", () => {
   it("still folds the row the tree cursor is on", () => {
     const rows = [{ foldable: true, expanded: true, parent: null }];
-    const { commands } = pressWith(reviewKeymaps(() => rows, () => SHORT), base(), "1", "h");
+    const { commands } = pressWith(reviewKeymaps(() => rows, () => SHORT, NO_COMMENTS), base(), "1", "h");
 
     expect(commands).toEqual([{ type: "ToggleFold", panel: "tree", index: 0, open: false }]);
   });
