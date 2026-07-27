@@ -10,7 +10,7 @@ import type { ComponentProps } from "react";
 import { COPY_PATH_KEY, EXPORT_KEY } from "@/keys/keymap";
 import Toolbar from "@/toolbar/Toolbar";
 
-const PATH = "/home/dev/.claude/reviews/review-2026-07-26.md";
+const PATH = "/home/dev/.codex/reviews/review-2026-07-26.md";
 
 function paint(props: Partial<ComponentProps<typeof Toolbar>> = {}) {
   const onExport = vi.fn();

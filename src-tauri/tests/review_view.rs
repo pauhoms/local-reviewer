@@ -5,7 +5,7 @@
 //! purpose: it says nothing about how `Review::view` is spelled in Rust, only
 //! that the payload crossing the border is one the front's type allows.
 //!
-//! Nothing here may touch `~/.claude/reviews/`: the reviews directory is
+//! Nothing here may touch `~/.codex/reviews/`: the reviews directory is
 //! pointed at a `TempDir` through the environment variable.
 
 use std::fs;

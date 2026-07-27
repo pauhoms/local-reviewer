@@ -223,6 +223,11 @@ export default function ReviewShell({ scope }: ReviewShellProps): JSX.Element {
           case "SaveComment":
             reviewStore.saveEditing();
             break;
+          case "EditComment": {
+            const target = reviewStore.getState().comments[command.index];
+            if (target) reviewStore.editComment(target.id);
+            break;
+          }
           // Changing view is one move: the cursor arrives already read in the
           // units of the view that opens, on the column the line lives on.
           case "SetView": {

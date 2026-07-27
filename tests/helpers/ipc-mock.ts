@@ -34,7 +34,7 @@ function defaults(): IpcFixture {
     diff: [],
     blobs: {},
     reviews: [],
-    exportPaths: ["/home/dev/.claude/reviews/review-2026-07-26.md"],
+    exportPaths: ["/home/dev/.codex/reviews/review-2026-07-26.md"],
   };
 }
 

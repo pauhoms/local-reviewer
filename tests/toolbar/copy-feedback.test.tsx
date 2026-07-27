@@ -20,7 +20,7 @@ import { clipboardText, configureIpc, copyToClipboard, exportReview } from "../h
 import { reviewStore } from "@/state/review";
 
 const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/reviewv4" };
-const FIRST_EXPORT = "/home/dev/.claude/reviews/review-2026-07-26.md";
+const FIRST_EXPORT = "/home/dev/.codex/reviews/review-2026-07-26.md";
 
 const FILES: FileDiff[] = [
   {

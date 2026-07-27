@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_KEYMAPS } from "@/keys/keymap";
+import { DEFAULT_KEYMAPS, reviewKeymaps } from "@/keys/keymap";
 import { enterInsert } from "@/keys/machine";
-import { base, key, press } from "./helpers";
+import { base, key, press, pressWith } from "./helpers";
 
 describe("c hands the keyboard to the comment editor", () => {
   it("moves the active panel to the comments while entering insert", () => {
@@ -59,6 +59,44 @@ describe("c hands the keyboard to the comment editor", () => {
     const written = press(walked, "2", "v", "c", "Escape").state;
 
     expect(written.panels.comments.cursor).toBe(2);
+  });
+});
+
+describe("i edits the comment under the cursor", () => {
+  it("enters insert from panel 3 and stays on that panel when it finishes", () => {
+    const editing = press(base(), "3", "j", "i");
+
+    expect(editing.commands).toEqual([
+      { type: "EditComment", panel: "comments", index: 1 },
+    ]);
+    expect(editing.state.mode).toBe("insert");
+    expect(editing.state.activePanel).toBe("comments");
+
+    const saved = press(editing.state, key("Enter", { ctrl: true }));
+    expect(saved.state.mode).toBe("normal");
+    expect(saved.state.activePanel).toBe("comments");
+  });
+
+  it("does nothing when panel 3 has no comments", () => {
+    const empty = base();
+    empty.panels.comments.itemCount = 0;
+
+    const step = press(empty, "3", "i");
+
+    expect(step.commands).toEqual([]);
+    expect(step.state.mode).toBe("normal");
+  });
+
+  it("leaves the global copy shortcut on e", () => {
+    const keymaps = reviewKeymaps(
+      () => [],
+      () => ({ lineCount: 0, pageSize: 0, view: "unified", side: "new" }),
+      () => 1,
+    );
+    const step = pressWith(keymaps, base(), "3", "e");
+
+    expect(step.commands).toEqual([{ type: "CopyPath" }]);
+    expect(step.state.mode).toBe("normal");
   });
 });
 

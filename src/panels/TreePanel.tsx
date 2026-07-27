@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from "react";
 import type { DiffTotals, FlatRow } from "@/tree/build-tree";
 
 const TITLE = "1 ÁRBOL";
@@ -69,6 +70,24 @@ export default function TreePanel({
   commentCounts,
   totals,
 }: TreePanelProps): JSX.Element {
+  const listRef = useRef<HTMLUListElement>(null);
+
+  // Moving the cursor does not focus the row, so the browser will not reveal it
+  // for us. Keep the selected row inside this panel's own scroll viewport.
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    const selected = list?.querySelector<HTMLElement>('[data-cursor="true"]');
+    if (!list || !selected) return;
+
+    const viewport = list.getBoundingClientRect();
+    const row = selected.getBoundingClientRect();
+    if (row.top < viewport.top) {
+      list.scrollTop += row.top - viewport.top;
+    } else if (row.bottom > viewport.bottom) {
+      list.scrollTop += row.bottom - viewport.bottom;
+    }
+  }, [cursor, rows]);
+
   return (
     <section className="panel" aria-label={TITLE} aria-current={active} data-active={active}>
       <h2>
@@ -80,7 +99,7 @@ export default function TreePanel({
       {rows.length === 0 ? (
         <p className="panel-empty">Ningún fichero cambiado.</p>
       ) : (
-        <ul role="listbox" className="panel-list tree-list">
+        <ul ref={listRef} role="listbox" className="panel-list tree-list">
           {rows.map((row, index) =>
             treeRow(row, index, index === cursor, commentCounts.get(row.node.path) ?? 0),
           )}

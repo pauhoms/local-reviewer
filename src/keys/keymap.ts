@@ -99,6 +99,11 @@ const deleteItem: Binding = ({ panel, panelState }) => ({
   index: panelState.cursor,
 });
 
+const editComment: Binding = ({ panel, panelState }) =>
+  panelState.itemCount === 0
+    ? null
+    : { type: "EditComment", panel, index: panelState.cursor };
+
 const descend: Binding = ({ panel, panelState }) => ({
   type: "Descend",
   panel,
@@ -191,6 +196,7 @@ const NORMAL_PANELS: PanelKeymaps = {
     "g g": jumpTop,
     G: jumpBottom,
     Enter: confirm,
+    i: editComment,
     "d d": deleteItem,
     "z c": foldClose,
     "z o": foldOpen,
@@ -414,6 +420,12 @@ function commentsNormal(countNow: CommentCountNow): PanelKeymap {
     "g g": jumpTop,
     G: ({ panel }) => ({ type: "MoveCursor", panel, to: Math.max(0, countNow() - 1) }),
     Enter: confirm,
+    i: ({ panel, panelState }) => {
+      const count = countNow();
+      return count === 0
+        ? null
+        : { type: "EditComment", panel, index: clamp(panelState.cursor, count) };
+    },
     "d d": deleteItem,
     "z c": foldClose,
     "z o": foldOpen,

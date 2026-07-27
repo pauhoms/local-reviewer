@@ -1,0 +1,2 @@
+# Codex only loads project configuration after the repository is trusted.
+web_search = "live"

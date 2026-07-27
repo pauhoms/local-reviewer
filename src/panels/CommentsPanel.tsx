@@ -42,7 +42,7 @@ export default function CommentsPanel({
       )}
       {editing !== null && <CommentEditor comment={editing} onChange={onEditorChange} />}
       <footer className="panel-help">
-        j/k mover · Enter saltar al diff · dd borrar · zc/zo plegar
+        j/k mover · i editar · Enter saltar al diff · dd borrar · zc/zo plegar
       </footer>
     </section>
   );

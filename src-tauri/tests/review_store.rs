@@ -2,7 +2,7 @@
 //! (file, side, first line, last line), persisted as one JSON per review under
 //! `$REVIEWV4_REVIEWS_DIR/.state/` with an atomic write.
 //!
-//! Nothing here may touch `~/.claude/reviews/`: every test points the reviews
+//! Nothing here may touch `~/.codex/reviews/`: every test points the reviews
 //! directory at a `TempDir` through the environment variable.
 
 use std::fs;

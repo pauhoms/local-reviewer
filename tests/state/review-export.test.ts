@@ -3,7 +3,7 @@ import type { FileDiff, Scope } from "@/ipc/types";
 import { createReviewStore, persistableReview } from "@/state/review";
 
 const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/reviewv4" };
-const PATH = "/home/dev/.claude/reviews/review-2026-07-26.md";
+const PATH = "/home/dev/.codex/reviews/review-2026-07-26.md";
 
 const FILE: FileDiff = {
   path: "src/a.ts",

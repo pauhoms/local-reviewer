@@ -42,7 +42,7 @@ fn reviews_dir_from(
     if let Some(dir) = override_dir.filter(|value| !value.is_empty()) {
         return Ok(PathBuf::from(dir));
     }
-    home.map(|home| home.join(".claude").join("reviews"))
+    home.map(|home| home.join(".codex").join("reviews"))
         .ok_or(ReviewError::NoReviewsDir)
 }
 
@@ -100,7 +100,7 @@ mod tests {
     fn without_an_override_the_reviews_live_under_home() {
         let dir = reviews_dir_from(None, Some(PathBuf::from("/home/dev"))).expect("home default");
 
-        assert_eq!(dir, PathBuf::from("/home/dev/.claude/reviews"));
+        assert_eq!(dir, PathBuf::from("/home/dev/.codex/reviews"));
     }
 
     #[test]
@@ -108,7 +108,7 @@ mod tests {
         let dir = reviews_dir_from(Some(OsString::new()), Some(PathBuf::from("/home/dev")))
             .expect("home default");
 
-        assert_eq!(dir, PathBuf::from("/home/dev/.claude/reviews"));
+        assert_eq!(dir, PathBuf::from("/home/dev/.codex/reviews"));
     }
 
     #[test]

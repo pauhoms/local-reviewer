@@ -278,6 +278,22 @@ describe("the tree moves with j and k", () => {
     expect(cursorPath()).toBe("src/domain");
   });
 
+  it("keeps the row reached with the keyboard inside the tree scroll viewport", async () => {
+    const user = await renderTree();
+    const list = panel("tree").querySelector<HTMLElement>(".tree-list");
+    if (!list) throw new Error("el árbol no tiene lista");
+
+    vi.spyOn(list, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 300, 48));
+    vi.spyOn(rowAt("src/domain"), "getBoundingClientRect").mockReturnValue(
+      new DOMRect(0, 48, 300, 24),
+    );
+
+    await user.keyboard("j");
+
+    expect(cursorPath()).toBe("src/domain");
+    expect(list.scrollTop).toBe(24);
+  });
+
   it("TS-20: j and k skip the rows hidden by a collapsed folder", async () => {
     const user = await renderTree();
 

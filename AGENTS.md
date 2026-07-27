@@ -101,11 +101,11 @@ explicar el qué, el código está mal escrito. Nada de comentarios de sección 
   - Se assertea comportamiento observable (lo que ve el usuario), no estado interno.
 - **Typecheck**: `npx tsc --noEmit` y `cargo clippy` limpios antes de cerrar fase.
 - Los directorios de estado y export en tests se redirigen con la variable de
-  entorno `REVIEWV4_REVIEWS_DIR`: ningún test escribe en `~/.claude/reviews/`.
+  entorno `REVIEWV4_REVIEWS_DIR`: ningún test escribe en `~/.codex/reviews/`.
 
 ## Persistencia
 
-Un JSON por revisión en `~/.claude/reviews/.state/` (override:
+Un JSON por revisión en `~/.codex/reviews/.state/` (override:
 `REVIEWV4_REVIEWS_DIR`). Escritura **atómica**: fichero temporal en el mismo
 directorio + `rename`. Sin base de datos y sin migraciones de esquema.
 

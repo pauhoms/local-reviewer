@@ -54,6 +54,76 @@ describe("writing a comment", () => {
     expect(store.getState().comments[0].text).toBe("guardado");
   });
 
+  it("editComment opens an existing comment without changing its anchor", () => {
+    const store = createReviewStore();
+    store.addComment(comment("c1", "texto anterior"));
+
+    store.editComment("c1");
+
+    expect(store.getState().editing).toBe("c1");
+    expect(store.getState().comments[0]).toEqual(comment("c1", "texto anterior"));
+  });
+
+  it("editComment leaves the state alone when the id does not exist", () => {
+    const store = createReviewStore();
+    store.addComment(comment("c1"));
+    const before = store.getState();
+
+    store.editComment("missing");
+
+    expect(store.getState()).toBe(before);
+  });
+
+  it("saving an edited comment keeps its new text", () => {
+    const store = createReviewStore();
+    store.addComment(comment("c1", "texto anterior"));
+    store.editComment("c1");
+    store.setCommentText("c1", "texto corregido");
+
+    store.saveEditing();
+
+    expect(store.getState().editing).toBeNull();
+    expect(store.getState().comments[0].text).toBe("texto corregido");
+  });
+
+  it("cancelling an edit restores the previous text instead of deleting the comment", () => {
+    const store = createReviewStore();
+    store.addComment(comment("c1", "texto anterior"));
+    store.editComment("c1");
+    store.setCommentText("c1", "texto descartado");
+
+    store.cancelEditing();
+
+    expect(store.getState().editing).toBeNull();
+    expect(store.getState().comments).toEqual([comment("c1", "texto anterior")]);
+  });
+
+  it("does not persist an existing comment draft until it is confirmed", () => {
+    const store = createReviewStore();
+    store.open(SCOPE, sampleFiles);
+    store.addComment(comment("c1", "texto anterior"));
+    store.editComment("c1");
+    store.setCommentText("c1", "texto a medias");
+
+    expect(persistableReview(store.getState())?.comments[0].text).toBe("texto anterior");
+
+    store.saveEditing();
+
+    expect(persistableReview(store.getState())?.comments[0].text).toBe("texto a medias");
+  });
+
+  it("saving an existing comment without text removes it", () => {
+    const store = createReviewStore();
+    store.addComment(comment("c1", "texto anterior"));
+    store.editComment("c1");
+    store.setCommentText("c1", "  \n ");
+
+    store.saveEditing();
+
+    expect(store.getState().comments).toEqual([]);
+    expect(store.getState().editing).toBeNull();
+  });
+
   it("saving a comment with nothing written in it throws it away", () => {
     const store = createReviewStore();
     store.addComment(comment("c1", "el de antes"));

@@ -120,7 +120,7 @@ body {
 
 .toolbar-path {
   color: var(--accent);
-  /* The whole point of the line: it gets selected and pasted into Claude Code. */
+  /* The whole point of the line: it gets selected and handed to Codex. */
   user-select: all;
 }
 
@@ -130,15 +130,19 @@ body {
 
 .panels {
   display: grid;
-  grid-template-columns: 1fr 2fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr);
   flex: 1;
+  width: 100%;
   min-height: 0;
+  overflow: hidden;
 }
 
 .panel {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   min-height: 0;
+  overflow: hidden;
   background: var(--bg-panel);
   border-right: 1px solid var(--border);
 }
@@ -455,7 +459,9 @@ body {
 .comment-editor {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   margin-top: auto;
+  overflow: hidden;
   border-top: 1px solid var(--border);
 }
 
@@ -464,9 +470,14 @@ body {
   padding: 0.4rem 0.75rem;
   font-size: 0.75rem;
   color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .comment-editor-field {
+  width: calc(100% - 1.5rem);
+  min-width: 0;
   min-height: 6rem;
   margin: 0 0.75rem;
   padding: 0.4rem;

@@ -18,7 +18,7 @@ function keepFocus(event: { preventDefault: () => void }): void {
 
 /**
  * «Export Review» and «Copy Path» keep their English names: they are the two
- * actions the product names, and what the reviewer pastes into Claude Code.
+ * actions the product names, and what the reviewer hands to Codex.
  */
 export default function Toolbar({
   path,

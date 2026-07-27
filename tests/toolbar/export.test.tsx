@@ -61,8 +61,8 @@ const ROOT_PATH = "README.md";
 /** What the tree shows, which is neither the order of `FILES` nor the alphabet. */
 const TREE_ORDER = [ORDER_PATH, PHP_PATH, ROOT_PATH];
 
-const FIRST_EXPORT = "/home/dev/.claude/reviews/review-2026-07-26.md";
-const SECOND_EXPORT = "/home/dev/.claude/reviews/review-2026-07-26-2.md";
+const FIRST_EXPORT = "/home/dev/.codex/reviews/review-2026-07-26.md";
+const SECOND_EXPORT = "/home/dev/.codex/reviews/review-2026-07-26-2.md";
 
 function context(oldNo: number, newNo: number, content: string): Line {
   return { kind: "context", oldNo, newNo, content };

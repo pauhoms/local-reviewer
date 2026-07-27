@@ -1,6 +1,6 @@
 //! TS-15 — the recent repositories list: written atomically under
 //! `$REVIEWV4_REVIEWS_DIR/.state/`, read back by a *different* process, capped
-//! and free of duplicates. Nothing here may touch `~/.claude/reviews/`.
+//! and free of duplicates. Nothing here may touch `~/.codex/reviews/`.
 
 use std::fs;
 use std::path::{Path, PathBuf};

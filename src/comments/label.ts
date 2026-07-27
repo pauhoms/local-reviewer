@@ -3,7 +3,7 @@ export const SUMMARY_LIMIT = 72;
 
 /**
  * The wording of an anchor, shared by the panel and the exported Markdown so a
- * comment reads the same on screen and in the file handed to Claude Code.
+ * comment reads the same on screen and in the file handed to Codex.
  */
 export function lineRangeLabel(from: number, to: number): string {
   const first = Math.min(from, to);

@@ -136,6 +136,12 @@ function applyCommand(state: MachineState, command: Command): MachineState {
         activePanel: "comments",
         insertOrigin: command.panel,
       });
+    case "EditComment":
+      return enterInsert({
+        ...state,
+        activePanel: "comments",
+        insertOrigin: "comments",
+      });
     // A range is drawn in the units of the view it was drawn in — lines in
     // unified, rows in split — so the other view would paint it over lines
     // nobody chose. Changing view ends the selection; changing column does not.

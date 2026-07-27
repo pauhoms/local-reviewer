@@ -23,7 +23,7 @@
 //!   * two comments starting on the same line keep the order of the review;
 //!   * `YYYY-MM-DD` is the **local** date, the day the reviewer is having.
 //!
-//! Nothing here may touch `~/.claude/reviews/`: every test that writes points
+//! Nothing here may touch `~/.codex/reviews/`: every test that writes points
 //! the reviews directory at a `TempDir` through `REVIEWV4_REVIEWS_DIR`.
 
 use std::fs;
@@ -149,7 +149,7 @@ fn assert_named_today(path: &str, before: &str, after: &str, nth: u32) {
     let path = PathBuf::from(path);
     assert!(
         path.is_absolute(),
-        "Copy Path pastes this into Claude Code, so it has to be absolute: {path:?}"
+        "Copy Path hands this to Codex, so it has to be absolute: {path:?}"
     );
     let name = path
         .file_name()

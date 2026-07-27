@@ -24,6 +24,7 @@ export type Command =
   | { type: "Escape" }
   | { type: "CreateComment"; panel: Panel; from: number; to: number }
   | { type: "SaveComment" }
+  | { type: "EditComment"; panel: Panel; index: number }
   | { type: "Confirm"; panel: Panel; index: number }
   | { type: "Descend"; panel: Panel; index: number }
   | { type: "Ascend"; panel: Panel }

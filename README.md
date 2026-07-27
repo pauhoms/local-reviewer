@@ -14,7 +14,7 @@ lista de correcciones concreta, con fichero y líneas.
 
 Por eso la herramienta **solo lee**: nunca commitea, nunca toca el índice de
 git, nunca modifica el código revisado. No es un editor. Lo único que escribe
-son tus comentarios y el Markdown que exportas, y siempre en `~/.claude/reviews/`.
+son tus comentarios y el Markdown que exportas, y siempre en `~/.codex/reviews/`.
 
 ## Instalación
 
@@ -134,6 +134,7 @@ líneas y sobrevive a cerrar la aplicación.
 | --- | --- |
 | `j` / `k` | bajar / subir un comentario |
 | `gg` / `G` | ir al primero / al último |
+| `i` | editar el comentario seleccionado |
 | `Enter` | abrir el fichero y saltar a las líneas que comenta |
 | `dd` | borrar el comentario |
 | `zc` / `zo` | plegar / desplegar el texto del comentario |
@@ -153,22 +154,22 @@ Mientras escribes un comentario el teclado está en modo insert: solo responden
 `Ctrl+Enter`, que guarda, y `Esc`, que descarta lo escrito. Todo lo demás es
 texto.
 
-## De vuelta a Claude Code
+## De vuelta a Codex
 
 Con la revisión terminada, `y` exporta todos los comentarios a un Markdown en
-`~/.claude/reviews/`:
+`~/.codex/reviews/`:
 
 ```
-~/.claude/reviews/review-2026-07-26.md
+~/.codex/reviews/review-2026-07-26.md
 ```
 
 Un bloque por comentario, con la ruta del fichero, el rango de líneas y tu
 texto tal cual, ordenados como el árbol (la variable `REVIEWV4_REVIEWS_DIR`
 cambia ese directorio). `e` copia esa ruta al portapapeles, y
-el viaje se cierra pegándosela a Claude Code:
+el viaje se cierra pasándosela a Codex:
 
 ```
-> aplica las correcciones de ~/.claude/reviews/review-2026-07-26.md
+> aplica las correcciones de ~/.codex/reviews/review-2026-07-26.md
 ```
 
 La IA lee el fichero, corrige, y la siguiente vuelta empieza otra vez en
@@ -183,3 +184,7 @@ npx tsc --noEmit             # typecheck
 cd src-tauri && cargo test   # tests de Rust
 npm run smoke:build          # build de release y humo del binario instalado
 ```
+
+## Licencia
+
+Distribuido bajo la licencia MIT. Consulta [`LICENSE`](LICENSE).

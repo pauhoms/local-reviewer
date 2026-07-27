@@ -58,11 +58,11 @@ describe("README.md, la tabla de atajos frente al teclado real", () => {
     expect(documented.has(normalizeKey(COPY_PATH_KEY)), `falta la tecla de copiar ruta (${COPY_PATH_KEY})`).toBe(true);
   });
 
-  it("README: tells the trip back to Claude Code with the exported Markdown", () => {
+  it("README: tells the trip back to Codex with the exported Markdown", () => {
     const text = readme();
 
-    expect(text).toMatch(/Claude Code/);
+    expect(text).toMatch(/Codex/);
     expect(text).toMatch(/Markdown/i);
-    expect(text, "no dice dónde aterriza el Markdown exportado").toMatch(/~\/\.claude\/reviews/);
+    expect(text, "no dice dónde aterriza el Markdown exportado").toMatch(/~\/\.codex\/reviews/);
   });
 });

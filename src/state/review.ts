@@ -16,6 +16,8 @@ export interface ReviewState {
   comments: ReviewComment[];
   /** Comment the editor is on, `null` when nobody is writing. */
   editing: string | null;
+  /** Previous text when editing an existing comment; `null` for a new draft. */
+  editingOriginalText: string | null;
   /** Folded folder paths. Here and not in the panel: folding answers keys that
    *  may arrive faster than React re-renders, so it has to be readable at once. */
   collapsed: ReadonlySet<string>;
@@ -53,6 +55,7 @@ export interface ReviewStore {
   toggleCommentFold: (id: string, open: boolean) => void;
   addComment: (comment: ReviewComment) => void;
   startComment: (comment: ReviewComment) => void;
+  editComment: (id: string) => void;
   setCommentText: (id: string, text: string) => void;
   saveEditing: () => void;
   cancelEditing: () => void;
@@ -86,9 +89,13 @@ export function persistableReview(state: ReviewState): Review | null {
   // The draft is in `comments` from the moment `c` is pressed, so without this
   // the autosave writes a bodiless comment before the first letter is typed —
   // and a crash with the editor open would resurrect it on the next resume.
-  const comments = state.comments.filter(
-    (comment) => comment.id !== state.editing || comment.text.trim() !== "",
-  );
+  const comments = state.comments.flatMap((comment) => {
+    if (comment.id !== state.editing) return [comment];
+    if (state.editingOriginalText !== null) {
+      return [{ ...comment, text: state.editingOriginalText }];
+    }
+    return comment.text.trim() === "" ? [] : [comment];
+  });
   return { scope: state.scope, comments, view: state.view };
 }
 
@@ -102,6 +109,7 @@ function emptyState(): ReviewState {
     diffCursor: 0,
     comments: [],
     editing: null,
+    editingOriginalText: null,
     collapsed: NO_FOLDS,
     foldedComments: NO_FOLDS,
     view: "unified",
@@ -144,10 +152,12 @@ export function createReviewStore(): ReviewStore {
   }
 
   function drop(id: string): ReviewState {
+    const wasEditing = state.editing === id;
     return {
       ...state,
       comments: state.comments.filter((comment) => comment.id !== id),
-      editing: state.editing === id ? null : state.editing,
+      editing: wasEditing ? null : state.editing,
+      editingOriginalText: wasEditing ? null : state.editingOriginalText,
     };
   }
 
@@ -175,7 +185,17 @@ export function createReviewStore(): ReviewStore {
       set({ ...state, foldedComments: withFold(state.foldedComments, id, open) }),
     addComment: (comment) => set({ ...state, comments: [...state.comments, comment] }),
     startComment: (comment) =>
-      set({ ...state, comments: [...state.comments, comment], editing: comment.id }),
+      set({
+        ...state,
+        comments: [...state.comments, comment],
+        editing: comment.id,
+        editingOriginalText: null,
+      }),
+    editComment: (id) => {
+      const comment = state.comments.find((item) => item.id === id);
+      if (!comment || state.editing !== null) return;
+      set({ ...state, editing: id, editingOriginalText: comment.text });
+    },
     setCommentText: (id, text) => {
       if (!state.comments.some((comment) => comment.id === id)) return;
       set({
@@ -191,17 +211,40 @@ export function createReviewStore(): ReviewStore {
       // Saving a comment with nothing written in it would put an empty heading
       // in the exported Markdown; it is the same as never having made it.
       const draft = state.comments.find((comment) => comment.id === id);
-      set(draft && draft.text.trim() === "" ? drop(id) : { ...state, editing: null });
+      set(
+        draft && draft.text.trim() === ""
+          ? drop(id)
+          : { ...state, editing: null, editingOriginalText: null },
+      );
     },
     cancelEditing: () => {
-      if (state.editing === null) return;
-      set(drop(state.editing));
+      const id = state.editing;
+      if (id === null) return;
+      const originalText = state.editingOriginalText;
+      if (originalText === null) {
+        set(drop(id));
+        return;
+      }
+      set({
+        ...state,
+        comments: state.comments.map((comment) =>
+          comment.id === id ? { ...comment, text: originalText } : comment,
+        ),
+        editing: null,
+        editingOriginalText: null,
+      });
     },
     removeComment: (id) => {
       if (!state.comments.some((comment) => comment.id === id)) return;
       set(drop(id));
     },
-    restoreComments: (comments) => set({ ...state, comments: [...comments], editing: null }),
+    restoreComments: (comments) =>
+      set({
+        ...state,
+        comments: [...comments],
+        editing: null,
+        editingOriginalText: null,
+      }),
     exported: (path) => set({ ...state, exportPath: path, toolbarError: null, copied: false }),
     exportFailed: (message) =>
       set({

@@ -797,6 +797,80 @@ describe("the list shows every comment", () => {
   });
 });
 
+describe("editing a comment from panel 3", () => {
+  it("i opens the selected comment in the editor with its current text", async () => {
+    const user = await boot();
+    seed(
+      seeded("c1", PHP_PATH, 35, 35, "primero"),
+      seeded("c2", PHP_PATH, 36, 36, "texto que quiero corregir"),
+    );
+
+    await user.keyboard("3ji");
+
+    expect(cursorId()).toBe("c2");
+    expect(requireEditor()).toHaveValue("texto que quiero corregir");
+    expect(requireEditor()).toHaveFocus();
+    expect(mode()).toBe("INSERT");
+    expect(activePanels()).toEqual(["comments"]);
+  });
+
+  it("Ctrl+Enter replaces the text and keeps the comment anchor", async () => {
+    const user = await boot();
+    seed(seeded("c1", PHP_PATH, 35, 37, "texto anterior"));
+
+    await user.keyboard("3i");
+    await user.clear(requireEditor());
+    await user.keyboard("texto corregido");
+    await user.keyboard("{Control>}{Enter}{/Control}");
+
+    expect(editor()).toBeNull();
+    expect(mode()).toBe("NORMAL");
+    expect(activePanels()).toEqual(["comments"]);
+    expect(entryIds()).toEqual(["c1"]);
+    expect(summaryOf("c1")).toContain("texto corregido");
+    expect(rangeOf("c1")).toBe("Líneas 35-37");
+    expect(pathOf("c1")).toBe(PHP_PATH);
+    await waitFor(() => {
+      expect(lastSaved().comments.find((comment) => comment.id === "c1")?.text).toBe(
+        "texto corregido",
+      );
+    });
+  });
+
+  it("Esc discards the changes and restores the previous text", async () => {
+    const user = await boot();
+    seed(seeded("c1", PHP_PATH, 35, 35, "texto anterior"));
+
+    await user.keyboard("3i");
+    await user.clear(requireEditor());
+    await user.keyboard("texto que no quiero guardar");
+    await user.keyboard("{Escape}");
+
+    expect(editor()).toBeNull();
+    expect(mode()).toBe("NORMAL");
+    expect(activePanels()).toEqual(["comments"]);
+    expect(entryIds()).toEqual(["c1"]);
+    expect(summaryOf("c1")).toContain("texto anterior");
+    expect(summaryOf("c1")).not.toContain("no quiero guardar");
+  });
+
+  it("i with an empty list leaves panel 3 in normal mode", async () => {
+    const user = await boot();
+
+    await user.keyboard("3i");
+
+    expect(editor()).toBeNull();
+    expect(mode()).toBe("NORMAL");
+    expect(commentsPanel()).toHaveTextContent(/sin comentarios/i);
+  });
+
+  it("shows the edit shortcut in the panel help", async () => {
+    await boot();
+
+    expect(commentsPanel().querySelector(".panel-help")).toHaveTextContent(/i editar/i);
+  });
+});
+
 // -----------------------------------------------------------------------------
 // TS-33 — dd
 // -----------------------------------------------------------------------------

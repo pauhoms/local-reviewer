@@ -2,6 +2,7 @@
 name = "reviewv4"
 version = "0.1.0"
 description = "AI Code Reviewer — Vim-first desktop reviewer for AI-generated code"
+license = "MIT"
 edition = "2021"
 rust-version = "1.77"
 
