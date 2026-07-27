@@ -1,7 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DEFAULT_KEYMAPS } from "./keymap";
 import type { Keymaps } from "./keymap";
-import { initialState, PANELS, reduce, setCursor, setItemCount, setPageSize } from "./machine";
+import {
+  initialState,
+  PANELS,
+  placeCursor,
+  reduce,
+  setCursor,
+  setItemCount,
+  setPageSize,
+} from "./machine";
 import type { Command, KeyEvent, MachineState, Panel } from "./types";
 
 export interface PanelConfig {
@@ -9,6 +17,9 @@ export interface PanelConfig {
   pageSize: number;
   /** Identity of the list on show: a new one starts under the cursor again. */
   listId?: string;
+  /** Where the cursor is for a panel that keeps it outside the machine, read at
+   *  the moment the key lands: a command of the same burst may have moved it. */
+  cursorNow?: () => number;
 }
 
 export type KeyboardConfig = Record<Panel, PanelConfig>;
@@ -59,6 +70,15 @@ function syncConfig(state: MachineState, config: KeyboardConfig, listIds: ListId
   return next;
 }
 
+function adoptCursors(state: MachineState, config: KeyboardConfig): MachineState {
+  let next = state;
+  for (const panel of PANELS) {
+    const cursor = config[panel].cursorNow?.();
+    if (cursor !== undefined) next = placeCursor(next, panel, cursor);
+  }
+  return next;
+}
+
 export function useKeyboard(
   config: KeyboardConfig,
   onCommands?: (commands: Command[]) => void,
@@ -71,6 +91,7 @@ export function useKeyboard(
 
   const onCommandsRef = useRef(onCommands);
   const keymapsRef = useRef(keymaps);
+  const configRef = useRef(config);
   const listIdsRef = useRef<ListIds>({});
   const [, bumpRender] = useState(0);
 
@@ -80,6 +101,7 @@ export function useKeyboard(
   // the cursor would end up on one row and the diff panel on another file.
   onCommandsRef.current = onCommands;
   keymapsRef.current = keymaps;
+  configRef.current = config;
   stateRef.current = syncConfig(stateRef.current, config, listIdsRef.current);
 
   const commit = useCallback((next: MachineState): void => {
@@ -90,7 +112,8 @@ export function useKeyboard(
   useEffect(() => {
     function handleKeyDown(nativeEvent: KeyboardEvent): void {
       const event = normalizeEvent(nativeEvent);
-      const step = reduce(stateRef.current ?? initialState(), event, keymapsRef.current);
+      const current = adoptCursors(stateRef.current ?? initialState(), configRef.current);
+      const step = reduce(current, event, keymapsRef.current);
 
       // Only a key the machine actually answers is worth stealing: elsewhere the shortcut
       // would be inert *and* blocked, which is worse than leaving it to the browser.

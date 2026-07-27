@@ -27,6 +27,14 @@ async function boot(): Promise<void> {
   configureIpc({ startup: { scope: SCOPE, home: "/home/dev" }, diff: FILES });
   render(<App />);
   await screen.findByRole("region", { name: /^1 ÁRBOL/ });
+  // The store is a singleton: an IPC promise still in flight from an earlier
+  // test would land mid-burst and reopen the review, resetting the cursor.
+  await act(async () => undefined);
+}
+
+/** Fails where the state went wrong, not three keys later. */
+function expectCursorOn(path: string): void {
+  expect(cursorPath()).toBe(path);
 }
 
 /**
@@ -61,7 +69,9 @@ afterEach(() => {
 describe("keys that arrive faster than React can flush", () => {
   it("walks up to the parent on the second h instead of folding twice", async () => {
     await boot();
+    expectCursorOn("src");
     burst("j");
+    expectCursorOn("src/a");
 
     burst("h", "h");
 
@@ -71,7 +81,9 @@ describe("keys that arrive faster than React can flush", () => {
 
   it("opens the file the cursor really landed on", async () => {
     await boot();
+    expectCursorOn("src");
     burst("j");
+    expectCursorOn("src/a");
 
     burst("h", "j", "j", "Enter");
 
@@ -81,7 +93,9 @@ describe("keys that arrive faster than React can flush", () => {
 
   it("never leaves the cursor on one row while the diff shows another file", async () => {
     await boot();
+    expectCursorOn("src");
     burst("j");
+    expectCursorOn("src/a");
 
     burst("h", "l", "j", "Enter");
 

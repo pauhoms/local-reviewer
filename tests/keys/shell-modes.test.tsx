@@ -57,9 +57,12 @@ describe("the shell shows the visual range", () => {
     await renderShell();
     const user = userEvent.setup();
 
-    await user.keyboard("2jjjvkk");
-    expect(selectedIndexes("diff")).toEqual([1, 2, 3]);
-    expect(headIndex("diff")).toBe(1);
+    // The anchor sits mid-list and the head ends up above it, which is what
+    // tells this apart from growing downwards. The indexes shrank when panel 2
+    // stopped being a placeholder list and became the real diff.
+    await user.keyboard("2jvk");
+    expect(selectedIndexes("diff")).toEqual([0, 1]);
+    expect(headIndex("diff")).toBe(0);
   });
 
   it("drops the range on Esc and leaves the cursor alone", async () => {

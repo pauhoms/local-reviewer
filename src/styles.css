@@ -12,6 +12,11 @@
   --accent-delete: #f85149;
   --selection-bg: #1f3a5f;
   --tree-indent: 0.9rem;
+  --diff-line-height: 24px;
+  --diff-add-bg: #12261e;
+  --diff-del-bg: #2d1214;
+  --diff-add-marker: #3fb950;
+  --diff-del-marker: #f85149;
 }
 
 * {
@@ -191,6 +196,94 @@ body {
 .tree-comments {
   font-size: 0.75rem;
   color: var(--accent-visual);
+}
+
+.diff-viewport {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.diff-sizer {
+  position: relative;
+}
+
+.diff-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.diff-line,
+.diff-hunk-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: var(--diff-line-height);
+  padding: 0 0.5rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+  line-height: var(--diff-line-height);
+}
+
+.diff-hunk-header {
+  color: var(--accent);
+  background: var(--bg-panel);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.diff-line[data-kind="add"] {
+  background: var(--diff-add-bg);
+}
+
+.diff-line[data-kind="del"] {
+  background: var(--diff-del-bg);
+}
+
+/* After the add/del rules on purpose: the range on show wins over the kind. */
+.diff-line[aria-selected="true"] {
+  background: var(--selection-bg);
+  color: var(--text);
+}
+
+.panel[data-active="true"] .diff-line[data-cursor="true"] {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.diff-no {
+  flex: none;
+  width: 3.5em;
+  text-align: right;
+  color: var(--text-muted);
+  user-select: none;
+}
+
+.diff-marker {
+  flex: none;
+  width: 1ch;
+  user-select: none;
+}
+
+.diff-line[data-kind="add"] .diff-marker {
+  color: var(--diff-add-marker);
+}
+
+.diff-line[data-kind="del"] .diff-marker {
+  color: var(--diff-del-marker);
+}
+
+.diff-content {
+  flex: 1;
+  overflow: hidden;
+  white-space: pre;
+  text-overflow: ellipsis;
+}
+
+.diff-position {
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--text-muted);
 }
 
 .scope-summary {

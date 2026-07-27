@@ -1,30 +1,24 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { countDiffLines } from "@/diff/rows";
+import { DEFAULT_PAGE_SIZE } from "@/diff/window";
 import type { Scope } from "@/ipc/types";
-import { foldingKeymaps } from "@/keys/keymap";
+import { reviewKeymaps } from "@/keys/keymap";
+import type { DiffMetrics } from "@/keys/keymap";
 import { selectionRange } from "@/keys/selection";
-import type { Command, Mode, Panel, Selection } from "@/keys/types";
+import type { Command, Mode, Selection } from "@/keys/types";
 import { useKeyboard } from "@/keys/useKeyboard";
+import DiffPanel from "@/panels/DiffPanel";
 import TreePanel from "@/panels/TreePanel";
-import { commentCountsByPath, reviewStore, useReviewState } from "@/state/review";
+import { commentCountsByPath, reviewStore, selectedFile, useReviewState } from "@/state/review";
 import { buildTree, diffTotals, flatten, foldRows } from "@/tree/build-tree";
 import type { FlatRow, TreeNode } from "@/tree/build-tree";
 import { basename } from "./paths";
 import { scopeLabel } from "./scope-label";
 
-type SidePanel = Exclude<Panel, "tree">;
+const COMMENTS_TITLE = "3 COMENTARIOS";
 
-const SIDE_PANELS: SidePanel[] = ["diff", "comments"];
-
-const PANEL_TITLES: Record<SidePanel, string> = {
-  diff: "2 DIFF",
-  comments: "3 COMENTARIOS",
-};
-
-/** Placeholder lists until the real panels (fases 5-6) render actual review data. */
-const PANEL_ITEMS: Record<SidePanel, string[]> = {
-  diff: ["línea 1", "línea 2", "línea 3", "línea 4", "línea 5"],
-  comments: ["comentario 1", "comentario 2", "comentario 3"],
-};
+/** Placeholder list until the comments panel (fase 6) renders actual comments. */
+const COMMENT_ITEMS = ["comentario 1", "comentario 2", "comentario 3"];
 
 const MODE_LABELS: Record<Mode, string> = {
   normal: "NORMAL",
@@ -36,9 +30,7 @@ interface ReviewShellProps {
   scope: Scope;
 }
 
-interface PanelView {
-  name: SidePanel;
-  subtitle: string | null;
+interface CommentsView {
   cursor: number;
   active: boolean;
   range: Selection | null;
@@ -50,22 +42,17 @@ function isSelected(index: number, cursor: number, range: Selection | null): boo
   return index >= from && index <= to;
 }
 
-function renderPanel({ name, subtitle, cursor, active, range }: PanelView): JSX.Element {
-  const title = PANEL_TITLES[name];
+function renderComments({ cursor, active, range }: CommentsView): JSX.Element {
   return (
     <section
-      key={name}
       className="panel"
-      aria-label={title}
+      aria-label={COMMENTS_TITLE}
       aria-current={active}
       data-active={active}
     >
-      <h2>
-        {title}
-        {subtitle !== null && <span className="panel-subtitle"> {subtitle}</span>}
-      </h2>
+      <h2>{COMMENTS_TITLE}</h2>
       <ul role="listbox" className="panel-list">
-        {PANEL_ITEMS[name].map((item, index) => (
+        {COMMENT_ITEMS.map((item, index) => (
           <li
             key={item}
             role="option"
@@ -81,10 +68,13 @@ function renderPanel({ name, subtitle, cursor, active, range }: PanelView): JSX.
 }
 
 export default function ReviewShell({ scope }: ReviewShellProps): JSX.Element {
-  const { files, comments, selectedPath, collapsed } = useReviewState();
+  const { files, comments, selectedPath, collapsed, diffCursor } = useReviewState();
 
   // What the cursor walks: the folds and the file on show must not reset it.
   const listId = useMemo(() => files.map((file) => file.path).join("\n"), [files]);
+
+  const file = useMemo(() => selectedFile(files, selectedPath), [files, selectedPath]);
+  const diffLines = useMemo(() => countDiffLines(file), [file]);
 
   const tree = useMemo(() => buildTree(files), [files]);
   const rows = useMemo(() => flatten(tree, collapsed), [tree, collapsed]);
@@ -99,11 +89,39 @@ export default function ReviewShell({ scope }: ReviewShellProps): JSX.Element {
     (): FlatRow[] => flatten(treeRef.current, reviewStore.getState().collapsed),
     [],
   );
-  const keymaps = useMemo(() => foldingKeymaps(() => foldRows(rowsNow())), [rowsNow]);
+  // Same reason for the diff: opening another file changes the lines the next
+  // key walks, and a resize changes what half a page means.
+  const pageSizeRef = useRef(DEFAULT_PAGE_SIZE);
+  const [diffPageSize, setDiffPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const handlePageSize = useCallback((size: number): void => {
+    pageSizeRef.current = size;
+    setDiffPageSize(size);
+  }, []);
+  const diffNow = useCallback((): DiffMetrics => {
+    const { files: known, selectedPath: shown } = reviewStore.getState();
+    return {
+      lineCount: countDiffLines(selectedFile(known, shown)),
+      pageSize: pageSizeRef.current,
+    };
+  }, []);
+
+  const keymaps = useMemo(
+    () => reviewKeymaps(() => foldRows(rowsNow()), diffNow),
+    [rowsNow, diffNow],
+  );
 
   const handleCommands = useCallback(
     (commands: Command[]): void => {
       for (const command of commands) {
+        if (command.type === "MoveCursor" && command.panel === "diff") {
+          reviewStore.setDiffCursor(command.to);
+          continue;
+        }
+        // Only the diff has a range to extend, and extending it drags the cursor.
+        if (command.type === "ExtendSelection") {
+          reviewStore.setDiffCursor(command.to);
+          continue;
+        }
         if (command.type !== "ToggleFold" && command.type !== "Confirm") continue;
         if (command.panel !== "tree") continue;
         const node: TreeNode | undefined = rowsNow()[command.index]?.node;
@@ -120,8 +138,12 @@ export default function ReviewShell({ scope }: ReviewShellProps): JSX.Element {
   const state = useKeyboard(
     {
       tree: { itemCount: rows.length, pageSize: rows.length, listId },
-      diff: { itemCount: PANEL_ITEMS.diff.length, pageSize: PANEL_ITEMS.diff.length },
-      comments: { itemCount: PANEL_ITEMS.comments.length, pageSize: PANEL_ITEMS.comments.length },
+      diff: {
+        itemCount: diffLines,
+        pageSize: diffPageSize,
+        cursorNow: () => reviewStore.getState().diffCursor,
+      },
+      comments: { itemCount: COMMENT_ITEMS.length, pageSize: COMMENT_ITEMS.length },
     },
     handleCommands,
     keymaps,
@@ -148,15 +170,19 @@ export default function ReviewShell({ scope }: ReviewShellProps): JSX.Element {
           commentCounts={commentCounts}
           totals={totals}
         />
-        {SIDE_PANELS.map((name) => {
-          const active = state.activePanel === name;
-          return renderPanel({
-            name,
-            subtitle: name === "diff" ? selectedPath : null,
-            cursor: state.panels[name].cursor,
-            active,
-            range: active ? range : null,
-          });
+        <DiffPanel
+          scope={scope}
+          path={selectedPath}
+          file={file}
+          cursor={diffCursor}
+          active={state.activePanel === "diff"}
+          range={state.activePanel === "diff" ? range : null}
+          onPageSize={handlePageSize}
+        />
+        {renderComments({
+          cursor: state.panels.comments.cursor,
+          active: state.activePanel === "comments",
+          range: state.activePanel === "comments" ? range : null,
         })}
       </div>
     </div>

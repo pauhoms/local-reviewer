@@ -61,6 +61,15 @@ export function setCursor(state: MachineState, panel: Panel, cursor: number): Ma
   }));
 }
 
+/**
+ * The cursor as whoever owns the list says it is. It is not clamped on purpose:
+ * the owner already answers for its own list, while the `itemCount` the machine
+ * holds is the one of the last render, which a burst of keys runs ahead of.
+ */
+export function placeCursor(state: MachineState, panel: Panel, cursor: number): MachineState {
+  return updatePanel(state, panel, (panelState) => ({ ...panelState, cursor }));
+}
+
 export function setPageSize(state: MachineState, panel: Panel, pageSize: number): MachineState {
   return updatePanel(state, panel, (panelState) => ({ ...panelState, pageSize }));
 }

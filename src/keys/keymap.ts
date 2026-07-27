@@ -254,6 +254,79 @@ export function foldingKeymaps(rowsNow: FoldRows): Keymaps {
   };
 }
 
+/** What the diff panel is showing right now: lines in the file and lines on show. */
+export interface DiffMetrics {
+  lineCount: number;
+  pageSize: number;
+}
+
+export type DiffMetricsNow = () => DiffMetrics;
+
+const diffMove =
+  (metricsNow: DiffMetricsNow, step: (metrics: DiffMetrics) => number): Binding =>
+  ({ panel, panelState }) => {
+    const metrics = metricsNow();
+    return {
+      type: "MoveCursor",
+      panel,
+      to: clamp(panelState.cursor + step(metrics), metrics.lineCount),
+    };
+  };
+
+const diffExtend =
+  (metricsNow: DiffMetricsNow, step: number): Binding =>
+  ({ panelState, selection }) => {
+    if (!selection) return null;
+    return {
+      type: "ExtendSelection",
+      from: selection.anchor,
+      to: clamp(panelState.cursor + step, metricsNow().lineCount),
+    };
+  };
+
+/** Never zero: a viewport too short to halve would leave Ctrl+d dead. */
+const halfPage = (metrics: DiffMetrics): number => Math.max(1, Math.floor(metrics.pageSize / 2));
+
+function diffNormal(metricsNow: DiffMetricsNow): PanelKeymap {
+  return {
+    j: diffMove(metricsNow, () => 1),
+    k: diffMove(metricsNow, () => -1),
+    "g g": jumpTop,
+    G: ({ panel }) => ({ type: "MoveCursor", panel, to: Math.max(0, metricsNow().lineCount - 1) }),
+    "Ctrl+d": diffMove(metricsNow, halfPage),
+    "Ctrl+u": diffMove(metricsNow, (metrics) => -halfPage(metrics)),
+    v: enterVisual,
+  };
+}
+
+function diffVisual(metricsNow: DiffMetricsNow): PanelKeymap {
+  return {
+    j: diffExtend(metricsNow, 1),
+    k: diffExtend(metricsNow, -1),
+    c: createComment,
+  };
+}
+
+/**
+ * The review tables. Both getters answer on the spot for the same reason: a
+ * burst of keys arrives before React re-renders, and opening another file
+ * changes the very lines the next key walks.
+ */
+export function reviewKeymaps(rowsNow: FoldRows, diffNow: DiffMetricsNow): Keymaps {
+  const folding = foldingKeymaps(rowsNow);
+  return {
+    ...folding,
+    normal: {
+      global: GLOBAL_KEYMAP,
+      panels: { ...folding.normal.panels, diff: diffNormal(diffNow) },
+    },
+    visual: {
+      global: GLOBAL_KEYMAP,
+      panels: { ...folding.visual.panels, diff: diffVisual(diffNow) },
+    },
+  };
+}
+
 /** The picker: three lists, one of which is a directory tree to walk. */
 const START_PANELS: PanelKeymaps = {
   tree: {

@@ -16,6 +16,10 @@ export interface ReviewState {
   scope: Scope | null;
   files: FileDiff[];
   selectedPath: string | null;
+  /** Diff line under the cursor. Here and not in the panel: opening another
+   *  file puts it back on the first line, and the key that follows in the same
+   *  burst has to read it already moved. */
+  diffCursor: number;
   comments: ReviewComment[];
   /** Folded folder paths. Here and not in the panel: folding answers keys that
    *  may arrive faster than React re-renders, so it has to be readable at once. */
@@ -27,6 +31,7 @@ export interface ReviewStore {
   subscribe: (listener: () => void) => () => void;
   open: (scope: Scope, files: FileDiff[]) => void;
   selectFile: (path: string) => void;
+  setDiffCursor: (line: number) => void;
   toggleFold: (path: string, open: boolean) => void;
   addComment: (comment: ReviewComment) => void;
   removeComment: (id: string) => void;
@@ -40,10 +45,23 @@ export function commentCountsByPath(comments: readonly ReviewComment[]): Map<str
   return counts;
 }
 
+/** The file the diff panel is showing, or `null` when the path is not in the changes. */
+export function selectedFile(files: readonly FileDiff[], path: string | null): FileDiff | null {
+  if (path === null) return null;
+  return files.find((file) => file.path === path) ?? null;
+}
+
 const NO_FOLDS: ReadonlySet<string> = new Set();
 
 function emptyState(): ReviewState {
-  return { scope: null, files: [], selectedPath: null, comments: [], collapsed: NO_FOLDS };
+  return {
+    scope: null,
+    files: [],
+    selectedPath: null,
+    diffCursor: 0,
+    comments: [],
+    collapsed: NO_FOLDS,
+  };
 }
 
 /**
@@ -77,13 +95,19 @@ export function createReviewStore(): ReviewStore {
         scope,
         files,
         selectedPath: firstFileOfTree(files),
+        diffCursor: 0,
         comments: [],
         collapsed: NO_FOLDS,
       };
       emit();
     },
     selectFile: (path) => {
-      state = { ...state, selectedPath: path };
+      // The line of the file that closes means nothing in the one that opens.
+      state = { ...state, selectedPath: path, diffCursor: 0 };
+      emit();
+    },
+    setDiffCursor: (line) => {
+      state = { ...state, diffCursor: line };
       emit();
     },
     toggleFold: (path, open) => {
