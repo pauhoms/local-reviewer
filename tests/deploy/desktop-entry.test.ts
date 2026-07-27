@@ -61,7 +61,7 @@ describe("deploy/reviewer.desktop", () => {
 
     expect(keys).toEqual([...new Set(keys)]);
     for (const key of keys) {
-      expect(key, `«${key}» no es una clave clave=valor`).toMatch(/^[A-Za-z][A-Za-z0-9-]*(\[[^\]]+\])?$/);
+      expect(key, `"${key}" is not a key=value key`).toMatch(/^[A-Za-z][A-Za-z0-9-]*(\[[^\]]+\])?$/);
     }
   });
 

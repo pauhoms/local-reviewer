@@ -69,7 +69,7 @@ const LAYOUT: SplitLayout = splitLayout(MOCKUP);
 function cellIndexes(layout: SplitLayout, side: "old" | "new"): Array<number | null> {
   return layout.itemRows.map((row) => {
     const entry = layout.rows[row];
-    if (entry.kind === "header") throw new Error(`la fila ${row} es una cabecera, no un item`);
+    if (entry.kind === "header") throw new Error(`row ${row} is a header, not an item`);
     return (side === "old" ? entry.old : entry.new)?.index ?? null;
   });
 }

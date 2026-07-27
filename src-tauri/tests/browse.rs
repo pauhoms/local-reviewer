@@ -6,8 +6,8 @@ use std::os::unix::fs::symlink;
 use helpers::git_fixture::{
     canonical, path_str, temp_dir_in_home, temp_dir_outside_home, TempRepo,
 };
-use reviewv4_lib::git::browse::browse_dir;
-use reviewv4_lib::git::{DirEntryInfo, GitError};
+use local_reviewer_lib::git::browse::browse_dir;
+use local_reviewer_lib::git::{DirEntryInfo, GitError};
 
 fn sorted(entries: Vec<DirEntryInfo>) -> Vec<DirEntryInfo> {
     let mut entries = entries;

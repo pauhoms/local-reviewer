@@ -250,7 +250,7 @@ describe("the headers of the hunks are rows of their own", () => {
 
 /**
  * The mockup of the phase draws the gaps of an interleaved run above the pair
- * and the plain reading of «se emparejan en orden» puts them below, so where
+ * and the plain reading of "they are paired in order" puts them below, so where
  * the lone deletion of a run lands is left open. What is not open: no line may
  * be lost, duplicated or reordered, no row may be empty on both sides, and the
  * run may not take more rows than its longer side.

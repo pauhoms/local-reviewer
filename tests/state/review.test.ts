@@ -3,8 +3,8 @@ import type { Scope } from "@/ipc/types";
 import { createReviewStore } from "@/state/review";
 import { sampleFiles } from "../helpers/fixtures";
 
-const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/reviewv4" };
-const OTHER_SCOPE: Scope = { kind: "commit", repo: "/home/dev/reviewv4", sha: "a1b2c3d" };
+const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/local-reviewer" };
+const OTHER_SCOPE: Scope = { kind: "commit", repo: "/home/dev/local-reviewer", sha: "a1b2c3d" };
 
 describe("review store", () => {
   it("starts empty with no scope, no selected file and no comments", () => {

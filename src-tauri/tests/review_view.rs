@@ -12,12 +12,12 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
-use reviewv4_lib::review::model::Review;
-use reviewv4_lib::review::store::{load, save, scope_key};
+use local_reviewer_lib::review::model::Review;
+use local_reviewer_lib::review::store::{load, save, scope_key};
 use serde_json::{json, Value};
 use tempfile::TempDir;
 
-const REVIEWS_DIR_ENV: &str = "REVIEWV4_REVIEWS_DIR";
+const REVIEWS_DIR_ENV: &str = "LOCAL_REVIEWER_REVIEWS_DIR";
 
 /// The reviews directory travels in the environment, which is process-wide:
 /// tests that point it somewhere else must not overlap.
@@ -42,12 +42,12 @@ fn with_reviews_dir<T>(body: impl FnOnce(&Path) -> T) -> T {
 }
 
 fn worktree_scope() -> Value {
-    json!({ "kind": "worktree", "repo": "/home/dev/reviewv4" })
+    json!({ "kind": "worktree", "repo": "/home/dev/local-reviewer" })
 }
 
-fn scope() -> reviewv4_lib::git::Scope {
-    reviewv4_lib::git::Scope::Worktree {
-        repo: "/home/dev/reviewv4".to_string(),
+fn scope() -> local_reviewer_lib::git::Scope {
+    local_reviewer_lib::git::Scope::Worktree {
+        repo: "/home/dev/local-reviewer".to_string(),
     }
 }
 

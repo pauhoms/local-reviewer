@@ -41,10 +41,10 @@ function renderEditor(): {
     </>,
   );
 
-  const panel = screen.getByRole("region", { name: /^3 COMENTARIOS/ });
+  const panel = screen.getByRole("region", { name: /^3 COMMENTS/ });
   const editor = panel.querySelector<HTMLElement>(".comment-editor");
   const title = panel.querySelector<HTMLElement>(".comment-editor-title");
-  if (!editor || !title) throw new Error("El editor de comentarios no se ha renderizado");
+  if (!editor || !title) throw new Error("the comment editor was not rendered");
   return {
     shell: screen.getByTestId("panels"),
     panel,

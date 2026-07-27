@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { FileDiff, Scope } from "@/ipc/types";
 import { createReviewStore, persistableReview } from "@/state/review";
 
-const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/reviewv4" };
+const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/local-reviewer" };
 const PATH = "/home/dev/.codex/reviews/review-2026-07-26.md";
 
 const FILE: FileDiff = {
@@ -48,26 +48,26 @@ describe("what the toolbar knows about the export", () => {
   it("an export that fails with nothing exported yet says only what went wrong", () => {
     const store = opened();
 
-    store.exportFailed("No se pudo exportar la revisión: disco lleno");
+    store.exportFailed("Could not export the review: disk full");
 
     expect(store.getState().exportPath).toBeNull();
-    expect(store.getState().toolbarError).toBe("No se pudo exportar la revisión: disco lleno");
+    expect(store.getState().toolbarError).toBe("Could not export the review: disk full");
   });
 
   it("an export that fails after one that worked keeps its path and names it", () => {
     const store = opened();
     store.exported(PATH);
 
-    store.exportFailed("No se pudo exportar la revisión: disco lleno");
+    store.exportFailed("Could not export the review: disk full");
 
     expect(store.getState().exportPath).toBe(PATH);
-    expect(store.getState().toolbarError).toContain("disco lleno");
+    expect(store.getState().toolbarError).toContain("disk full");
     expect(store.getState().toolbarError).toContain(PATH);
   });
 
   it("an export that works clears what the last failure said", () => {
     const store = opened();
-    store.exportFailed("No se pudo exportar la revisión: disco lleno");
+    store.exportFailed("Could not export the review: disk full");
 
     store.exported(PATH);
 
@@ -78,16 +78,16 @@ describe("what the toolbar knows about the export", () => {
     const store = opened();
     store.exported(PATH);
 
-    store.copyFailed("No se pudo copiar la ruta");
+    store.copyFailed("Could not copy the path");
 
     expect(store.getState().exportPath).toBe(PATH);
-    expect(store.getState().toolbarError).toBe("No se pudo copiar la ruta");
+    expect(store.getState().toolbarError).toBe("Could not copy the path");
   });
 
   it("a copy that works says so and takes the last failure off the toolbar", () => {
     const store = opened();
     store.exported(PATH);
-    store.copyFailed("No se pudo copiar la ruta: sin portapapeles");
+    store.copyFailed("Could not copy the path: clipboard unavailable");
 
     store.copied();
 
@@ -110,7 +110,7 @@ describe("what the toolbar knows about the export", () => {
     store.exported(PATH);
     store.copied();
 
-    store.copyFailed("No se pudo copiar la ruta: sin portapapeles");
+    store.copyFailed("Could not copy the path: clipboard unavailable");
 
     expect(store.getState().copied).toBe(false);
   });

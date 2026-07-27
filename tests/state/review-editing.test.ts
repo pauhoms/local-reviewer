@@ -4,7 +4,7 @@ import { createReviewStore, persistableReview } from "@/state/review";
 import type { ReviewComment } from "@/state/review";
 import { sampleFiles } from "../helpers/fixtures";
 
-const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/reviewv4" };
+const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/local-reviewer" };
 
 function comment(id: string, text = `nota ${id}`): ReviewComment {
   return { id, path: "src/a.ts", side: "new", from: 1, to: 2, text };

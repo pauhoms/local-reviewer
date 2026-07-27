@@ -23,18 +23,18 @@ export default function ScopePicker({
   return (
     <section
       className="start-panel start-scope"
-      aria-label="3 ¿Qué revisamos?"
+      aria-label="3 Review scope"
       aria-current={active}
       data-active={active}
       data-repo={repo ?? ""}
     >
-      <h2>3 ¿Qué revisamos?</h2>
+      <h2>3 Review scope</h2>
       {repo === null ? (
-        <p className="start-empty">Elegí un repo en Recientes o en Navegar.</p>
+        <p className="start-empty">Choose a repository from Recent or Browse.</p>
       ) : (
         <>
           <p className="start-path">{repo}</p>
-          <ul role="listbox" aria-label="Alcance" className="start-list">
+          <ul role="listbox" aria-label="Scope" className="start-list">
             {SCOPE_MODES.map(({ mode, label }, index) => (
               <li key={mode} role="option" aria-selected={index === modeIndex}>
                 {label}
@@ -43,11 +43,11 @@ export default function ScopePicker({
           </ul>
           <h3>Commits</h3>
           {commits.status === "loading" ? (
-            <p className="start-empty">Leyendo los commits…</p>
+            <p className="start-empty">Loading commits…</p>
           ) : commits.status === "failed" ? (
             <p className="start-empty">{commits.message}</p>
           ) : commits.data.length === 0 ? (
-            <p className="start-empty">Este repo todavía no tiene commits.</p>
+            <p className="start-empty">This repository has no commits yet.</p>
           ) : (
             <ul role="listbox" aria-label="Commits" className="start-list">
               {commits.data.map((commit, index) => (

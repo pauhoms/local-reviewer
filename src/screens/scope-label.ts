@@ -5,9 +5,9 @@ const SHORT_SHA_LENGTH = 7;
 export type ScopeMode = "worktree" | "commit" | "range";
 
 export const SCOPE_MODES: ReadonlyArray<{ mode: ScopeMode; label: string }> = [
-  { mode: "worktree", label: "Cambios sin commitear" },
-  { mode: "commit", label: "Un commit" },
-  { mode: "range", label: "Rango de commits" },
+  { mode: "worktree", label: "Uncommitted changes" },
+  { mode: "commit", label: "Single commit" },
+  { mode: "range", label: "Commit range" },
 ];
 
 export function shortSha(reference: string): string {

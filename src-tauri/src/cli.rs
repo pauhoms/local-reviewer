@@ -41,11 +41,11 @@ const RANGE_SEPARATOR: &str = "..";
 fn usage() -> String {
     [
         "reviewer [<commit>|<a>..<b>]",
-        "  sin argumentos   revisa los cambios sin commitear del repo actual",
-        "  <commit>         revisa un commit concreto",
-        "  <a>..<b>         revisa el acumulado de un rango de commits",
-        "  --help, -h       muestra esta ayuda",
-        "  (fuera de un repo git, abre la pantalla de selección)",
+        "  no arguments    review uncommitted changes in the current repository",
+        "  <commit>        review one commit",
+        "  <a>..<b>        review the accumulated changes in a commit range",
+        "  --help, -h      show this help",
+        "  outside Git     open the repository picker",
     ]
     .join("\n")
 }

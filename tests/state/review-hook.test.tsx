@@ -4,7 +4,7 @@ import type { Scope } from "@/ipc/types";
 import { reviewStore, useReviewState } from "@/state/review";
 import { sampleFiles } from "../helpers/fixtures";
 
-const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/reviewv4" };
+const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/local-reviewer" };
 
 function FileList(): JSX.Element {
   const state = useReviewState();

@@ -3,15 +3,15 @@ import { lineRangeLabel, summarize, SUMMARY_LIMIT } from "@/comments/label";
 
 describe("lineRangeLabel", () => {
   it("names a single line in the singular", () => {
-    expect(lineRangeLabel(35, 35)).toBe("Línea 35");
+    expect(lineRangeLabel(35, 35)).toBe("Line 35");
   });
 
   it("names a range with both ends", () => {
-    expect(lineRangeLabel(35, 48)).toBe("Líneas 35-48");
+    expect(lineRangeLabel(35, 48)).toBe("Lines 35-48");
   });
 
   it("orders the ends so a backwards anchor still reads forwards", () => {
-    expect(lineRangeLabel(48, 35)).toBe("Líneas 35-48");
+    expect(lineRangeLabel(48, 35)).toBe("Lines 35-48");
   });
 });
 

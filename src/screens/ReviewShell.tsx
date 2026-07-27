@@ -98,7 +98,7 @@ function runExport(): void {
   exportReview(review, filePaths(buildTree(state.files)))
     .then((path) => reviewStore.exported(path))
     .catch((error: unknown) =>
-      reviewStore.exportFailed(`No se pudo exportar la revisión: ${errorMessage(error)}`),
+      reviewStore.exportFailed(`Could not export the review: ${errorMessage(error)}`),
     );
 }
 
@@ -108,7 +108,7 @@ function runCopy(): void {
   copyToClipboard(exportPath)
     .then(() => reviewStore.copied())
     .catch((error: unknown) =>
-      reviewStore.copyFailed(`No se pudo copiar la ruta: ${errorMessage(error)}`),
+      reviewStore.copyFailed(`Could not copy the path: ${errorMessage(error)}`),
     );
 }
 
@@ -309,7 +309,7 @@ export default function ReviewShell({ scope }: ReviewShellProps): JSX.Element {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>AI Code Reviewer</h1>
+        <h1>Local Reviewer</h1>
         <span className="scope-summary">
           {basename(scope.repo)} · {scopeLabel(scope)}
         </span>

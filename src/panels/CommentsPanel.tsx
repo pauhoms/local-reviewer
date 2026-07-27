@@ -2,9 +2,9 @@ import type { ReviewComment } from "@/state/review";
 import CommentEditor from "./CommentEditor";
 import CommentList from "./CommentList";
 
-const TITLE = "3 COMENTARIOS";
+const TITLE = "3 COMMENTS";
 
-const EMPTY = "Sin comentarios todavía.";
+const EMPTY = "No comments yet.";
 
 interface CommentsPanelProps {
   comments: readonly ReviewComment[];
@@ -31,7 +31,7 @@ export default function CommentsPanel({
         {comments.length > 0 && (
           <span className="comment-position">
             {" "}
-            {Math.min(cursor, comments.length - 1) + 1} de {comments.length}
+            {Math.min(cursor, comments.length - 1) + 1} of {comments.length}
           </span>
         )}
       </h2>
@@ -42,7 +42,7 @@ export default function CommentsPanel({
       )}
       {editing !== null && <CommentEditor comment={editing} onChange={onEditorChange} />}
       <footer className="panel-help">
-        j/k mover · i editar · Enter saltar al diff · dd borrar · zc/zo plegar
+        j/k move · i edit · Enter jump to diff · dd delete · zc/zo fold
       </footer>
     </section>
   );

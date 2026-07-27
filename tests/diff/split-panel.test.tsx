@@ -19,9 +19,9 @@
  *              the row the cursor is on, gap or not, and nowhere else.
  *   selection  `aria-selected="true"` only inside cells of the active side.
  *   columns    `[data-column="old"|"new"]` headers reading OLD / NEW, with
- *              `data-active="true"` on the active one (mockup: `◀ lado activo`).
- *   heading    panel 2's heading says `SPLIT` and `lado OLD` / `lado NEW`
- *              (mockup: `2 DIFF  src/UserService.php   SPLIT · lado NEW`).
+ *              `data-active="true"` on the active one (mockup: `◀ active side`).
+ *   heading    panel 2's heading says `SPLIT` and `OLD side` / `NEW side`
+ *              (mockup: `2 DIFF  src/UserService.php   SPLIT · NEW side`).
  *              In unified it says neither.
  *
  * Keys, from the mockup: `Ctrl+w v` splits, `Ctrl+w o` goes back to unified,
@@ -42,7 +42,7 @@ import App from "@/App";
 import { configureIpc, saveReview } from "../helpers/ipc-mock";
 import { reviewStore } from "@/state/review";
 
-const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/reviewv4" };
+const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/local-reviewer" };
 
 const SPLIT = "{Control>}w{/Control}v";
 const ONLY = "{Control>}w{/Control}o";
@@ -213,7 +213,7 @@ function headingText(): string {
 
 function viewport(): HTMLElement {
   const node = diffPanel().querySelector<HTMLElement>("[data-diff-viewport]");
-  if (!node) throw new Error("el panel 2 no expone ningún [data-diff-viewport]");
+  if (!node) throw new Error("panel 2 does not expose [data-diff-viewport]");
   return node;
 }
 
@@ -230,14 +230,14 @@ function unifiedRowNodes(): HTMLElement[] {
 
 function unifiedCursorIndex(): number {
   const marked = unifiedRowNodes().filter((row) => row.getAttribute("data-cursor") === "true");
-  if (marked.length > 1) throw new Error(`hay ${marked.length} líneas con cursor a la vez`);
+  if (marked.length > 1) throw new Error(`${marked.length} lines have the cursor at the same time`);
   if (marked.length === 0) return -1;
   return Number(marked[0].getAttribute("data-line-index"));
 }
 
 function unifiedBody(index: number): string {
   const row = unifiedRowNodes().find((node) => node.getAttribute("data-line-index") === String(index));
-  if (!row) throw new Error(`la línea ${index} no está montada en la vista unificada`);
+  if (!row) throw new Error(`line ${index} is not mounted in unified view`);
   return row.querySelector("[data-line-content]")?.textContent ?? "";
 }
 
@@ -249,7 +249,7 @@ function cellOf(row: HTMLElement, side: Side): HTMLElement {
   const found = cellsOf(row).filter((cell) => cell.getAttribute("data-side") === side);
   if (found.length !== 1) {
     throw new Error(
-      `la fila ${row.getAttribute("data-split-row")} tiene ${found.length} celdas del lado ${side}`,
+      `row ${row.getAttribute("data-split-row")} has ${found.length} ${side}-side cells`,
     );
   }
   return found[0];
@@ -258,7 +258,7 @@ function cellOf(row: HTMLElement, side: Side): HTMLElement {
 /** The column a mark lands on, whether it sits on the cell or inside it. */
 function sideCellOf(node: HTMLElement): HTMLElement {
   const cell = node.closest<HTMLElement>("[data-side]");
-  if (!cell) throw new Error("una marca del diff partido cae fuera de toda columna [data-side]");
+  if (!cell) throw new Error("a split-diff mark falls outside every [data-side] column");
   return cell;
 }
 
@@ -293,14 +293,14 @@ function cursorCell(): HTMLElement {
   const cells = [...new Set(marked.map(sideCellOf))];
   if (cells.length !== 1) {
     const where = cells.map((cell) => `${cell.getAttribute("data-side")}@${rowIndexOf(cell)}`);
-    throw new Error(`se esperaba una celda con cursor y hay ${cells.length}: ${where.join(", ")}`);
+    throw new Error(`expected one cursor cell, found ${cells.length}: ${where.join(", ")}`);
   }
   return cells[0];
 }
 
 function rowNodeOf(cell: HTMLElement): HTMLElement {
   const row = cell.closest<HTMLElement>("[data-split-row]");
-  if (!row) throw new Error("una celda del diff partido no está dentro de ninguna fila");
+  if (!row) throw new Error("a split-diff cell is not inside any row");
   return row;
 }
 
@@ -316,18 +316,18 @@ function cursorSide(): string {
   return cursorCell().getAttribute("data-side") ?? "";
 }
 
-/** What the heading says the active side is: `SPLIT · lado NEW` in the mockup. */
+/** What the heading says the active side is: `SPLIT · NEW side` in the mockup. */
 function labelledSide(): string {
-  const match = /lado\s+(OLD|NEW)/i.exec(headingText());
+  const match = /(OLD|NEW)\s+side/i.exec(headingText());
   if (!match) {
-    throw new Error(`la cabecera del panel 2 no dice qué lado está activo: «${headingText()}»`);
+    throw new Error(`the panel 2 header does not say which side is active: "${headingText()}"`);
   }
   return match[1].toLowerCase();
 }
 
 function columnHeader(side: Side): HTMLElement {
   const node = diffPanel().querySelector<HTMLElement>(`[data-column="${side}"]`);
-  if (!node) throw new Error(`el panel 2 no tiene cabecera de columna [data-column="${side}"]`);
+  if (!node) throw new Error(`panel 2 has no [data-column="${side}"] column header`);
   return node;
 }
 
@@ -336,7 +336,7 @@ function activeColumn(): string {
     (side) => columnHeader(side).getAttribute("data-active") === "true",
   );
   if (marked.length !== 1) {
-    throw new Error(`se esperaba una columna activa y hay ${marked.length}`);
+    throw new Error(`expected one active column, found ${marked.length}`);
   }
   return marked[0];
 }
@@ -374,7 +374,7 @@ function commentRanges(): string[] {
 
 function lastSaved(): Review {
   const calls = saveReview.mock.calls;
-  if (calls.length === 0) throw new Error("nadie ha llamado a save_review todavía");
+  if (calls.length === 0) throw new Error("save_review has not been called yet");
   return calls[calls.length - 1][0];
 }
 
@@ -396,7 +396,7 @@ function cursorBand(): { top: number; bottom: number } {
     diffPanel().querySelectorAll<HTMLElement>("[data-split-row], [data-hunk-header]"),
   );
   const at = rows.indexOf(row);
-  if (at < 0) throw new Error("la fila del cursor no está montada");
+  if (at < 0) throw new Error("the cursor row is not mounted");
   const list = row.closest("ul,ol");
   const shift = list instanceof HTMLElement ? offsetOf(list) : 0;
   const top = shift + at * ROW_HEIGHT;
@@ -419,7 +419,7 @@ function expectCursorOnScreen(what: string): void {
 async function boot(files: FileDiff[] = FILES, reviews: Review[] = []): Promise<UserEvent> {
   configureIpc({ startup: { scope: SCOPE, home: "/home/dev" }, diff: files, reviews });
   render(<App />);
-  await screen.findByRole("region", { name: /^1 ÁRBOL/ });
+  await screen.findByRole("region", { name: /^1 FILES/ });
   const user = userEvent.setup();
   await user.keyboard("2");
   await act(async () => undefined);
@@ -454,7 +454,7 @@ async function walkTo(
     if (ok(rowNodeOf(cursorCell()))) return;
     await user.keyboard("j");
   }
-  throw new Error(`no se llegó a ${what} en ${limit} pulsaciones de j`);
+  throw new Error(`did not reach ${what} in ${limit} presses of j`);
 }
 
 function showing(side: Side, number: string): (row: HTMLElement) => boolean {
@@ -514,7 +514,7 @@ describe("Ctrl+w v splits the diff into two aligned columns", () => {
     expect(splitRowNodes()).toEqual([]);
     expect(unifiedRowNodes()).toHaveLength(12);
     expect(headingText()).not.toMatch(/split/i);
-    expect(headingText()).not.toMatch(/lado\s+(old|new)/i);
+    expect(headingText()).not.toMatch(/(old|new)\s+side/i);
   });
 
   it("TS-36: every row carries one cell per side, and the numbers only go down", async () => {
@@ -557,7 +557,7 @@ describe("Ctrl+w v splits the diff into two aligned columns", () => {
         const cell = cellOf(candidate, "new");
         return !isGap(cell) && numberIn(cell) === "38";
       });
-    if (!added) throw new Error("la línea nueva 38 no está en ninguna fila");
+    if (!added) throw new Error("new line 38 is not in any row");
     expect(bodyIn(cellOf(added, "new"))).toBe(BODIES[7]);
     expect(attributeIn(cellOf(added, "new"), "data-kind")).toBe("add");
     expect(markerIn(cellOf(added, "new"))).toBe("+");
@@ -683,7 +683,7 @@ describe("Ctrl+w v splits the diff into two aligned columns", () => {
     await user.keyboard(SPLIT);
 
     expect(splitRowNodes()).toEqual([]);
-    expect(diffPanel()).toHaveTextContent(/sin líneas que mostrar/i);
+    expect(diffPanel()).toHaveTextContent(/no lines to display/i);
     expect(headingText()).toMatch(/split/i);
 
     await user.keyboard("jjkhlv");
@@ -725,11 +725,11 @@ describe("the active side is the one h and l choose", () => {
     await user.keyboard(SPLIT);
 
     expect(activeSide()).toBe("new");
-    expect(headingText()).toMatch(/lado\s+NEW/i);
+    expect(headingText()).toMatch(/NEW\s+side/i);
 
     await user.keyboard(WIN_LEFT);
     expect(activeSide()).toBe("old");
-    expect(headingText()).toMatch(/lado\s+OLD/i);
+    expect(headingText()).toMatch(/OLD\s+side/i);
     expect(columnHeader("old").getAttribute("data-active")).toBe("true");
     expect(columnHeader("new").getAttribute("data-active")).not.toBe("true");
 
@@ -799,7 +799,7 @@ describe("the active side is the one h and l choose", () => {
       expect(unifiedCursorIndex()).toBe(3);
       expect(splitRowNodes()).toEqual([]);
       expect(unifiedRowNodes()).toHaveLength(12);
-      expect(headingText()).not.toMatch(/lado\s+(old|new)/i);
+      expect(headingText()).not.toMatch(/(old|new)\s+side/i);
       expect(screen.getByText("NORMAL")).toBeInTheDocument();
     }
 
@@ -820,7 +820,7 @@ describe("the active side is the one h and l choose", () => {
       await user.keyboard(keys);
       expect(unifiedCursorIndex()).toBe(3);
       expect(splitRowNodes()).toEqual([]);
-      expect(headingText()).not.toMatch(/lado\s+(old|new)/i);
+      expect(headingText()).not.toMatch(/(old|new)\s+side/i);
     }
   });
 });
@@ -859,7 +859,7 @@ describe("v selects the active side and c anchors the comment to it", () => {
     await user.keyboard("{Control>}{Enter}{/Control}");
 
     expect(commentSides()).toEqual(["old"]);
-    expect(commentRanges()).toEqual(["Línea 36"]);
+    expect(commentRanges()).toEqual(["Line 36"]);
 
     await user.keyboard("2");
     await user.keyboard("l");
@@ -871,7 +871,7 @@ describe("v selects the active side and c anchors the comment to it", () => {
     await user.keyboard("{Control>}{Enter}{/Control}");
 
     expect(commentSides()).toEqual(["old", "new"]);
-    expect(commentRanges()).toEqual(["Línea 36", "Línea 38"]);
+    expect(commentRanges()).toEqual(["Line 36", "Line 38"]);
     expect(commentEntries()[0].getAttribute("data-path")).toBe(PHP_PATH);
     expect(commentEntries()[1].getAttribute("data-path")).toBe(PHP_PATH);
   });
@@ -890,7 +890,7 @@ describe("v selects the active side and c anchors the comment to it", () => {
     await user.keyboard("{Control>}{Enter}{/Control}");
 
     expect(commentSides()).toEqual(["old"]);
-    expect(commentRanges()).toEqual(["Líneas 35-36"]);
+    expect(commentRanges()).toEqual(["Lines 35-36"]);
   });
 
   it("TS-38: a burst of Ctrl+w h, v and c anchors to the side the burst chose", async () => {
@@ -904,7 +904,7 @@ describe("v selects the active side and c anchors the comment to it", () => {
     await user.keyboard("{Control>}{Enter}{/Control}");
 
     expect(commentSides()).toEqual(["old"]);
-    expect(commentRanges()).toEqual(["Línea 35"]);
+    expect(commentRanges()).toEqual(["Line 35"]);
   });
 });
 
@@ -942,7 +942,7 @@ describe("the chosen view is saved with the review", () => {
 
     expect(splitRowNodes()).toEqual([]);
     expect(unifiedRowNodes()).toHaveLength(12);
-    expect(headingText()).not.toMatch(/lado\s+(old|new)/i);
+    expect(headingText()).not.toMatch(/(old|new)\s+side/i);
   });
 
   it("TS-39: resuming a review saved in split brings the split back", async () => {
@@ -956,10 +956,10 @@ describe("the chosen view is saved with the review", () => {
     });
     render(<App />);
     const user = userEvent.setup();
-    await screen.findByText(/retomar/i);
+    await screen.findByText(/resume/i);
 
     await user.keyboard("{Enter}");
-    await screen.findByRole("region", { name: /^1 ÁRBOL/ });
+    await screen.findByRole("region", { name: /^1 FILES/ });
 
     expect(splitRowNodes().length).toBeGreaterThan(0);
     expect(headingText()).toMatch(/split/i);

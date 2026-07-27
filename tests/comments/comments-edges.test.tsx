@@ -19,7 +19,7 @@ import { configureIpc, saveReview } from "../helpers/ipc-mock";
 import { reviewStore } from "@/state/review";
 import type { ReviewComment } from "@/state/review";
 
-const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/reviewv4" };
+const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/local-reviewer" };
 const PATH = "src/UserService.php";
 
 function add(newNo: number, content: string): Line {
@@ -76,13 +76,13 @@ function mode(): string {
   for (const name of ["NORMAL", "VISUAL", "INSERT"]) {
     if (screen.queryByText(name) !== null) return name;
   }
-  throw new Error("la cabecera no muestra ningún modo");
+  throw new Error("the header does not show any mode");
 }
 
 async function boot(files: FileDiff[] = [file], reviews: Review[] = []): Promise<UserEvent> {
   configureIpc({ startup: { scope: SCOPE, home: "/home/dev" }, diff: files, reviews });
   render(<App />);
-  await screen.findByRole("region", { name: /^1 ÁRBOL/ });
+  await screen.findByRole("region", { name: /^1 FILES/ });
   const user = userEvent.setup();
   await act(async () => undefined);
   return user;
@@ -142,7 +142,7 @@ describe("a comment nobody wrote", () => {
     expect(entries()).toHaveLength(0);
     expect(editor()).toBeNull();
     expect(mode()).toBe("NORMAL");
-    expect(panel("comments")).toHaveTextContent(/sin comentarios/i);
+    expect(panel("comments")).toHaveTextContent(/no comments/i);
   });
 
   it("a comment of nothing but spaces is not saved either", async () => {

@@ -31,7 +31,7 @@ export default function CommentEditor({ comment, onChange }: CommentEditorProps)
         value={comment.text}
         onChange={(event) => onChange(event.target.value)}
       />
-      <p className="panel-help">Ctrl+Enter guardar · Esc cancelar</p>
+      <p className="panel-help">Ctrl+Enter save · Esc cancel</p>
     </div>
   );
 }

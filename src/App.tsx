@@ -20,7 +20,7 @@ type Route =
 function loadingScreen(): JSX.Element {
   return (
     <div className="app app-message">
-      <p role="status">Abriendo AI Code Reviewer…</p>
+      <p role="status">Opening Local Reviewer…</p>
     </div>
   );
 }
@@ -63,7 +63,7 @@ export default function App(): JSX.Element {
         if (scopeRequest.current !== request) return;
         setRoute({
           view: "failed",
-          message: `No se pudieron leer los cambios: ${errorMessage(error)}`,
+          message: `Could not read the changes: ${errorMessage(error)}`,
           repo: chosen.repo,
         });
       });
@@ -82,7 +82,7 @@ export default function App(): JSX.Element {
         if (!alive) return;
         setRoute({
           view: "failed",
-          message: `No se pudo arrancar la revisión: ${errorMessage(error)}`,
+          message: `Could not start the review: ${errorMessage(error)}`,
           repo: null,
         });
       });

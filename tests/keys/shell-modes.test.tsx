@@ -50,7 +50,7 @@ function seedComments(): void {
 
 async function renderShell(): Promise<void> {
   render(<App />);
-  await screen.findByRole("region", { name: /^1 ÁRBOL/ });
+  await screen.findByRole("region", { name: /^1 FILES/ });
   seedComments();
 }
 

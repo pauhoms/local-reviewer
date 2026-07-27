@@ -5,8 +5,8 @@
 mod helpers;
 
 use helpers::git_fixture::{canonical, path_str, TempRepo};
-use reviewv4_lib::cli::{parse_args, Startup};
-use reviewv4_lib::git::{diff, GitError, Scope};
+use local_reviewer_lib::cli::{parse_args, Startup};
+use local_reviewer_lib::git::{diff, GitError, Scope};
 use tempfile::TempDir;
 
 fn args(list: &[&str]) -> Vec<String> {
@@ -66,7 +66,7 @@ fn a_ref_that_resolves_to_nothing_at_all_is_still_reported_as_missing() {
         matches!(&err, GitError::BadRef(named) if named == "no-such-ref"),
         "got {err:?}"
     );
-    assert!(err.to_string().contains("no existe"), "{err}");
+    assert!(err.to_string().contains("does not exist"), "{err}");
 }
 
 #[test]

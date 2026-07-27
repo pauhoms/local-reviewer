@@ -21,7 +21,7 @@ export function fakeRelease(root: string, withBinary = true): string {
   const release = path.join(repo, "src-tauri", "target", "release");
   fs.mkdirSync(release, { recursive: true });
   if (withBinary) {
-    fs.writeFileSync(path.join(release, "reviewv4"), STUB_BINARY, { mode: 0o700 });
+    fs.writeFileSync(path.join(release, "local-reviewer"), STUB_BINARY, { mode: 0o700 });
   }
   const icons = path.join(repo, "src-tauri", "icons");
   fs.mkdirSync(icons, { recursive: true });

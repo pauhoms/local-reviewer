@@ -1,8 +1,8 @@
 mod helpers;
 
 use helpers::git_fixture::TempRepo;
-use reviewv4_lib::git::diff::diff_for_scope;
-use reviewv4_lib::git::{FileDiff, FileStatus, LineKind, Scope};
+use local_reviewer_lib::git::diff::diff_for_scope;
+use local_reviewer_lib::git::{FileDiff, FileStatus, LineKind, Scope};
 
 fn file<'a>(files: &'a [FileDiff], path: &str) -> &'a FileDiff {
     files

@@ -13,18 +13,18 @@ function reason(scope: Scope): { headline: string; detail: string } {
   switch (scope.kind) {
     case "worktree":
       return {
-        headline: "No hay cambios sin commitear en este repo.",
-        detail: "(working tree limpio respecto a HEAD)",
+        headline: "There are no uncommitted changes in this repository.",
+        detail: "(working tree is clean relative to HEAD)",
       };
     case "commit":
       return {
-        headline: "Este commit no toca ningún fichero.",
-        detail: `(${scopeLabel(scope)} no trae cambios)`,
+        headline: "This commit does not change any files.",
+        detail: `(${scopeLabel(scope)} contains no changes)`,
       };
     case "range":
       return {
-        headline: "Este rango no acumula ningún cambio.",
-        detail: `(${scopeLabel(scope)} no trae cambios)`,
+        headline: "This range contains no changes.",
+        detail: `(${scopeLabel(scope)} contains no changes)`,
       };
   }
 }
@@ -45,7 +45,7 @@ export default function EmptyScope({ scope, onBack }: EmptyScopeProps): JSX.Elem
       <p className="empty-headline">{headline}</p>
       <p className="empty-detail">{detail}</p>
       <p className="empty-hint">
-        <kbd>Enter</kbd> elegir otro alcance
+        <kbd>Enter</kbd> choose another scope
       </p>
     </div>
   );

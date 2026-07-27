@@ -72,10 +72,10 @@ export default function StartScreen({ home, initialRepo, onOpen }: StartScreenPr
         // first one has nothing to fall back to and must say what happened.
         setListing((current) =>
           current.entries.status === "loading"
-            ? { path, entries: { status: "failed", message: "No se pudo leer este directorio." } }
+            ? { path, entries: { status: "failed", message: "Could not read this directory." } }
             : current,
         );
-        setNotice(`No se pudo abrir ${path}: ${errorMessage(error)}`);
+        setNotice(`Could not open ${path}: ${errorMessage(error)}`);
       });
   }, []);
 
@@ -95,8 +95,8 @@ export default function StartScreen({ home, initialRepo, onOpen }: StartScreenPr
       })
       .catch((error: unknown) => {
         if (commitsRequest.current !== request) return;
-        setCommits({ status: "failed", message: "No se pudieron leer los commits." });
-        setNotice(`No se pudieron leer los commits de ${path}: ${errorMessage(error)}`);
+        setCommits({ status: "failed", message: "Could not read the commits." });
+        setNotice(`Could not read commits from ${path}: ${errorMessage(error)}`);
       });
   }, []);
 
@@ -106,7 +106,7 @@ export default function StartScreen({ home, initialRepo, onOpen }: StartScreenPr
       .catch(() =>
         setRecents({
           status: "failed",
-          message: "No se pudo leer la lista de repos recientes.",
+          message: "Could not read the recent repository list.",
         }),
       );
   }, []);
@@ -115,9 +115,9 @@ export default function StartScreen({ home, initialRepo, onOpen }: StartScreenPr
     if (home === "") {
       setListing({
         path: "",
-        entries: { status: "failed", message: "No se pudo determinar tu directorio personal." },
+        entries: { status: "failed", message: "Could not determine your home directory." },
       });
-      setNotice("No se pudo determinar tu directorio personal: no hay dónde navegar.");
+      setNotice("Could not determine your home directory, so there is nowhere to browse.");
       return;
     }
     openDir(home);
@@ -150,15 +150,15 @@ export default function StartScreen({ home, initialRepo, onOpen }: StartScreenPr
         return;
       }
       if (commits.status === "loading") {
-        setNotice("Todavía estoy leyendo los commits de este repo.");
+        setNotice("The commits for this repository are still loading.");
         return;
       }
       if (commits.status === "failed") {
-        setNotice("No se pudieron leer los commits de este repo.");
+        setNotice("Could not read this repository's commits.");
         return;
       }
       if (commits.data.length === 0) {
-        setNotice("Este repo todavía no tiene commits que revisar.");
+        setNotice("This repository has no commits to review yet.");
         return;
       }
       setMode(picked.mode);
@@ -255,7 +255,7 @@ export default function StartScreen({ home, initialRepo, onOpen }: StartScreenPr
   return (
     <div className="app">
       <header className="app-header">
-        <h1>AI Code Reviewer</h1>
+        <h1>Local Reviewer</h1>
         <span className="mode-indicator" data-mode={state.mode} aria-live="polite">
           {MODE_LABELS[state.mode]}
         </span>
@@ -283,7 +283,7 @@ export default function StartScreen({ home, initialRepo, onOpen }: StartScreenPr
       </div>
       {opening && (
         <p className="start-notice" role="status">
-          Abriendo la revisión…
+          Opening the review…
         </p>
       )}
       {notice !== null && (
@@ -292,7 +292,7 @@ export default function StartScreen({ home, initialRepo, onOpen }: StartScreenPr
         </p>
       )}
       <footer className="start-help">
-        j/k mover · l entrar · h subir · Enter elegir · Esc volver · 1/2/3 paneles
+        j/k move · l enter · h up · Enter choose · Esc back · 1/2/3 panels
       </footer>
     </div>
   );

@@ -3,7 +3,7 @@ import type { Scope } from "@/ipc/types";
 import { createReviewStore } from "@/state/review";
 import { sampleFiles } from "../helpers/fixtures";
 
-const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/reviewv4" };
+const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/local-reviewer" };
 
 describe("the line the diff cursor is on lives in the store", () => {
   it("starts on the first line of the file that opens", () => {

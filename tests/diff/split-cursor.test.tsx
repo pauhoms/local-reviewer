@@ -19,7 +19,7 @@ import App from "@/App";
 import { configureIpc } from "../helpers/ipc-mock";
 import { reviewStore } from "@/state/review";
 
-const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/reviewv4" };
+const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/local-reviewer" };
 const PATH = "src/UserService.php";
 
 const SPLIT = "{Control>}w{/Control}v";
@@ -89,20 +89,20 @@ function cursorCell(): HTMLElement {
   const cells = marked.map((node) => node.closest<HTMLElement>("[data-side]"));
   const unique = [...new Set(cells)];
   if (unique.length !== 1 || unique[0] === null) {
-    throw new Error(`se esperaba una celda con cursor y hay ${unique.length}`);
+    throw new Error(`expected one cursor cell, found ${unique.length}`);
   }
   return unique[0];
 }
 
 function rowOf(cell: HTMLElement): HTMLElement {
   const row = cell.closest<HTMLElement>("[data-split-row]");
-  if (!row) throw new Error("la celda no está dentro de ninguna fila");
+  if (!row) throw new Error("the cell is not inside any row");
   return row;
 }
 
 function cellOf(row: HTMLElement, side: "old" | "new"): HTMLElement {
   const cell = row.querySelector<HTMLElement>(`[data-side="${side}"]`);
-  if (!cell) throw new Error(`la fila no tiene celda del lado ${side}`);
+  if (!cell) throw new Error(`the row has no ${side}-side cell`);
   return cell;
 }
 
@@ -120,7 +120,7 @@ function isGap(cell: HTMLElement): boolean {
 async function boot(): Promise<UserEvent> {
   configureIpc({ startup: { scope: SCOPE, home: "/home/dev" }, diff: [FILE] });
   render(<App />);
-  await screen.findByRole("region", { name: /^1 ÁRBOL/ });
+  await screen.findByRole("region", { name: /^1 FILES/ });
   const user = userEvent.setup();
   await user.keyboard("2");
   await act(async () => undefined);
@@ -172,7 +172,7 @@ describe("a round trip through the unified view from a gap", () => {
     expect(rowOf(cell).getAttribute("data-split-row")).toBe(row);
     expect(cell.getAttribute("data-side")).toBe("new");
     expect(numberIn(cell)).toBe("37");
-    expect(panel("diff")).toHaveTextContent(/lado NEW/i);
+    expect(panel("diff")).toHaveTextContent(/NEW side/i);
   });
 });
 
@@ -190,7 +190,7 @@ describe("c has nothing to anchor when the active column is all gaps", () => {
 
     expect(screen.getByText("VISUAL")).toBeInTheDocument();
     expect(panel("comments").querySelectorAll("[data-comment-id]")).toHaveLength(0);
-    expect(panel("comments")).toHaveTextContent(/sin comentarios/i);
+    expect(panel("comments")).toHaveTextContent(/no comments/i);
   });
 });
 
@@ -243,9 +243,9 @@ describe("Enter on a comment lands on the row that holds its line", () => {
     });
     render(<App />);
     const user = userEvent.setup();
-    await screen.findByText(/retomar/i);
+    await screen.findByText(/resume/i);
     await user.keyboard("{Enter}");
-    await screen.findByRole("region", { name: /^1 ÁRBOL/ });
+    await screen.findByRole("region", { name: /^1 FILES/ });
 
     // The old line 35 is the fifth line of the file and the second row of the
     // split: a jump travelling as a line index would land three rows further.

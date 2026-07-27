@@ -17,21 +17,21 @@ export default function RepoBrowser({
   return (
     <section
       className="start-panel"
-      aria-label="2 Navegar"
+      aria-label="2 Browse"
       aria-current={active}
       data-active={active}
       data-path={path}
     >
-      <h2>2 Navegar</h2>
+      <h2>2 Browse</h2>
       <p className="start-path">{path}</p>
       {entries.status === "loading" ? (
-        <p className="start-empty">Leyendo el directorio…</p>
+        <p className="start-empty">Loading directory…</p>
       ) : entries.status === "failed" ? (
         <p className="start-empty">{entries.message}</p>
       ) : entries.data.length === 0 ? (
-        <p className="start-empty">No hay directorios aquí.</p>
+        <p className="start-empty">No directories here.</p>
       ) : (
-        <ul role="listbox" aria-label="Directorios" className="start-list">
+        <ul role="listbox" aria-label="Directories" className="start-list">
           {entries.data.map((entry, index) => (
             <li
               key={entry.path}

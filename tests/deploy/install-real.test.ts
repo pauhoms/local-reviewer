@@ -77,7 +77,7 @@ describe("deploy/install.sh, a real installation", () => {
 
     install(where, sb);
 
-    expect(modeOf(path.join(where.repo, "src-tauri", "target", "release", "reviewv4"))).toBe(0o700);
+    expect(modeOf(path.join(where.repo, "src-tauri", "target", "release", "local-reviewer"))).toBe(0o700);
     expect(modeOf(where.launcher)).toBe(0o755);
   });
 
@@ -208,7 +208,7 @@ describe("deploy/install.sh, a real installation", () => {
   it("refuses a --prefix that is a file, saying so, instead of leaking the mkdir error", () => {
     const sb = box();
     const where = target(sb, "fichero");
-    // Executable, so that only the «this is not a directory» check can stop it.
+    // Executable, so that only the "this is not a directory" check can stop it.
     fs.writeFileSync(where.prefix, "#!/bin/sh\n", { mode: 0o755 });
 
     const run = install(where, sb);
@@ -216,7 +216,7 @@ describe("deploy/install.sh, a real installation", () => {
     expect(run.code).not.toBe(0);
     expect(run.output).toContain("✗");
     expect(run.output).toContain(where.prefix);
-    expect(run.output).toMatch(/no es un directorio/);
+    expect(run.output).toMatch(/is not a directory/);
     expect(run.output, "el error crudo de mkdir en vez del aviso").not.toMatch(/^mkdir:/m);
     expect(fs.readFileSync(where.prefix, "utf8")).toBe("#!/bin/sh\n");
   });

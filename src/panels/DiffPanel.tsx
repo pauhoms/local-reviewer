@@ -14,8 +14,8 @@ import VirtualList from "./VirtualList";
 
 const TITLE = "2 DIFF";
 
-const NO_LINES = "Sin líneas que mostrar.";
-const NOT_IN_DIFF = "El fichero seleccionado no está en los cambios.";
+const NO_LINES = "No lines to display.";
+const NOT_IN_DIFF = "The selected file is not part of these changes.";
 
 const SIDE_LABELS: Record<Side, string> = { old: "OLD", new: "NEW" };
 
@@ -24,9 +24,9 @@ const COLUMNS: Side[] = ["old", "new"];
 
 const HELP: Record<DiffView, string> = {
   unified:
-    "j/k línea · gg/G extremos · Ctrl+d/Ctrl+u media página · v seleccionar · c comentar · Ctrl+w v partir",
+    "j/k line · gg/G ends · Ctrl+d/Ctrl+u half page · v select · c comment · Ctrl+w v split",
   split:
-    "j/k fila · h/l lado · gg/G extremos · Ctrl+d/Ctrl+u media página · v seleccionar · c comentar · Ctrl+w o unificado",
+    "j/k row · h/l side · gg/G ends · Ctrl+d/Ctrl+u half page · v select · c comment · Ctrl+w o unified",
 };
 
 interface LoadedTokens extends FileTokens {
@@ -140,10 +140,10 @@ export default function DiffPanel({
         {itemCount > 0 && (
           <span className="diff-position">
             {" "}
-            {split ? "fila" : "línea"} {Math.min(cursor, itemCount - 1) + 1} de {itemCount}
+            {split ? "row" : "line"} {Math.min(cursor, itemCount - 1) + 1} of {itemCount}
           </span>
         )}
-        {split && <span className="diff-view"> SPLIT · lado {SIDE_LABELS[side]}</span>}
+        {split && <span className="diff-view"> SPLIT · {SIDE_LABELS[side]} side</span>}
       </h2>
       {empty !== null && <p className="panel-empty">{empty}</p>}
       {split && (
@@ -156,7 +156,7 @@ export default function DiffPanel({
               data-active={column === side}
             >
               {SIDE_LABELS[column]}
-              {column === side && <span className="split-column-mark"> ◀ lado activo</span>}
+              {column === side && <span className="split-column-mark"> ◀ active side</span>}
             </span>
           ))}
         </div>

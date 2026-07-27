@@ -11,7 +11,7 @@ import App from "@/App";
 import { configureIpc, readBlob } from "../helpers/ipc-mock";
 import { reviewStore } from "@/state/review";
 
-const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/reviewv4" };
+const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/local-reviewer" };
 
 const OLD_PATH = "src/old/Order.ts";
 const NEW_PATH = "src/new/Order.ts";
@@ -43,13 +43,13 @@ const renamed: FileDiff = {
 
 function rowAt(index: number): HTMLElement {
   const row = panel("diff").querySelector<HTMLElement>(`[data-line-index="${index}"]`);
-  if (!row) throw new Error(`la línea ${index} no está montada`);
+  if (!row) throw new Error(`line ${index} is not mounted`);
   return row;
 }
 
 function coloursOf(index: number): string[] {
   const content = rowAt(index).querySelector<HTMLElement>("[data-line-content]");
-  if (!content) throw new Error(`la línea ${index} no tiene [data-line-content]`);
+  if (!content) throw new Error(`line ${index} has no [data-line-content]`);
   return Array.from(content.querySelectorAll<HTMLElement>("[style]"))
     .map((node) => node.style.color)
     .filter((colour) => colour !== "");
@@ -62,7 +62,7 @@ async function boot(): Promise<void> {
     blobs: { [`old:${OLD_PATH}`]: OLD_SOURCE, [`new:${NEW_PATH}`]: NEW_SOURCE },
   });
   render(<App />);
-  await screen.findByRole("region", { name: /^1 ÁRBOL/ });
+  await screen.findByRole("region", { name: /^1 FILES/ });
   const user = userEvent.setup();
   await user.keyboard("2");
   await act(async () => undefined);

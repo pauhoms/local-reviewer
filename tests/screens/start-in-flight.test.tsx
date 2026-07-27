@@ -11,7 +11,7 @@ import * as ipc from "../helpers/ipc-mock";
 import App from "@/App";
 
 const HOME = "/home/dev";
-const REPO = "/home/dev/reviewv4";
+const REPO = "/home/dev/local-reviewer";
 const OTHER_REPO = "/home/dev/prx/iprox-server";
 
 const COMMITS: CommitInfo[] = [
@@ -44,7 +44,7 @@ const STALE_COMMITS: CommitInfo[] = [
 const DIRS: Record<string, DirEntryInfo[]> = {
   [HOME]: [
     { name: "prx", path: "/home/dev/prx", isGitRepo: false },
-    { name: "reviewv4", path: REPO, isGitRepo: true },
+    { name: "local-reviewer", path: REPO, isGitRepo: true },
     { name: "notas", path: "/home/dev/notas", isGitRepo: false },
   ],
   "/home/dev/prx": [{ name: "iprox-server", path: OTHER_REPO, isGitRepo: true }],
@@ -55,9 +55,9 @@ const WORKTREE_FILES: FileDiff[] = [
   { path: "sin-commitear.txt", oldPath: null, status: "M", additions: 1, deletions: 0, hunks: [] },
 ];
 
-const RECENTS = /Recientes/;
-const BROWSER = /Navegar/;
-const SCOPE = /¿Qué revisamos\?/;
+const RECENTS = /Recent/;
+const BROWSER = /Browse/;
+const SCOPE = /Review scope/;
 
 interface Deferred<T> {
   promise: Promise<T>;
@@ -209,23 +209,23 @@ describe("a screen that is still loading does not claim to be empty", () => {
     render(<App />);
     await screen.findByRole("region", { name: BROWSER });
 
-    expect(within(region(BROWSER)).queryByText(/No hay directorios aquí/i)).toBeNull();
-    expect(within(region(BROWSER)).getByText(/Leyendo el directorio/i)).toBeInTheDocument();
+    expect(within(region(BROWSER)).queryByText(/No directories here/i)).toBeNull();
+    expect(within(region(BROWSER)).getByText(/Loading directory/i)).toBeInTheDocument();
 
     await settle(slow, DIRS[HOME]);
 
     expect(optionsIn(region(BROWSER))).toHaveLength(3);
-    expect(within(region(BROWSER)).queryByText(/Leyendo el directorio/i)).toBeNull();
+    expect(within(region(BROWSER)).queryByText(/Loading directory/i)).toBeNull();
   });
 
   it("stops claiming to read a directory whose listing failed", async () => {
-    ipc.browseDir.mockRejectedValueOnce(new Error("permiso denegado"));
+    ipc.browseDir.mockRejectedValueOnce(new Error("permission denied"));
 
     render(<App />);
     await screen.findByRole("region", { name: BROWSER });
 
-    expect(await screen.findByRole("status")).toHaveTextContent(/permiso denegado/);
-    expect(within(region(BROWSER)).queryByText(/Leyendo el directorio/i)).toBeNull();
+    expect(await screen.findByRole("status")).toHaveTextContent(/permission denied/);
+    expect(within(region(BROWSER)).queryByText(/Loading directory/i)).toBeNull();
   });
 
   it("does not claim to be reading anything when there is nowhere to navigate", async () => {
@@ -235,14 +235,14 @@ describe("a screen that is still loading does not claim to be empty", () => {
     await screen.findByRole("region", { name: BROWSER });
     // The region exists before the effect settles it, so under load the panel
     // is caught mid-render still saying it reads. Wait for the settled state.
-    await within(region(BROWSER)).findByText(/no se pudo determinar tu directorio personal/i);
+    await within(region(BROWSER)).findByText(/could not determine your home directory/i);
 
-    expect(within(region(BROWSER)).queryByText(/Leyendo el directorio/i)).toBeNull();
+    expect(within(region(BROWSER)).queryByText(/Loading directory/i)).toBeNull();
     expect(ipc.browseDir).not.toHaveBeenCalled();
   });
 
   it("stops claiming to read the commits of a repo whose log failed", async () => {
-    ipc.listCommits.mockRejectedValueOnce(new Error("no es un repositorio git"));
+    ipc.listCommits.mockRejectedValueOnce(new Error("is not a Git repository"));
     const user = userEvent.setup();
     render(<App />);
     await waitFor(() => expect(optionsIn(region(RECENTS))).toHaveLength(2));
@@ -250,7 +250,7 @@ describe("a screen that is still loading does not claim to be empty", () => {
     await user.keyboard("1");
     await user.keyboard("{Enter}");
 
-    expect(await screen.findByRole("status")).toHaveTextContent(/no es un repositorio git/);
+    expect(await screen.findByRole("status")).toHaveTextContent(/is not a Git repository/);
     expect(within(region(SCOPE)).queryByText(/Leyendo los commits/i)).toBeNull();
   });
 
@@ -269,15 +269,15 @@ describe("a screen that is still loading does not claim to be empty", () => {
     await user.keyboard("j");
     await user.keyboard("{Enter}");
 
-    expect(screen.queryByText(/no tiene commits/i)).toBeNull();
-    expect(within(region(SCOPE)).queryByText(/Este repo todavía no tiene commits/i)).toBeNull();
+    expect(screen.queryByText(/has no commits/i)).toBeNull();
+    expect(within(region(SCOPE)).queryByText(/This repository has no commits yet/i)).toBeNull();
     expect(await screen.findByRole("status")).toHaveTextContent(
-      /leyendo los commits de este repo/i,
+      /commits for this repository are still loading/i,
     );
 
     await settle(slow, COMMITS);
 
-    expect(screen.queryByText(/no tiene commits/i)).toBeNull();
+    expect(screen.queryByText(/has no commits/i)).toBeNull();
     expect(screen.queryByText(/leyendo los commits de este repo/i)).toBeNull();
     expect(region(SCOPE)).toHaveTextContent("feat: add fleet map");
   });
@@ -298,7 +298,7 @@ describe("while a review is being opened", () => {
     await user.keyboard("3");
     await user.keyboard("{Enter}");
 
-    expect(await screen.findByRole("status")).toHaveTextContent(/abriendo la revisión/i);
+    expect(await screen.findByRole("status")).toHaveTextContent(/Opening the review/i);
 
     await settle(slow, sampleFiles);
 
@@ -318,14 +318,14 @@ describe("while a review is being opened", () => {
     ipc.getDiff.mockImplementationOnce(() => slow.promise);
     await user.keyboard("3");
     await user.keyboard("{Enter}");
-    expect(await screen.findByText(/abriendo la revisión/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Opening the review/i)).toBeInTheDocument();
 
     await user.keyboard("2");
     await user.keyboard("jj");
     await user.keyboard("{Enter}");
     await waitFor(() => expect(region(BROWSER).getAttribute("data-path")).toBe("/home/dev/notas"));
 
-    expect(screen.getByText(/abriendo la revisión/i)).toBeInTheDocument();
+    expect(screen.getByText(/Opening the review/i)).toBeInTheDocument();
 
     await settle(slow, sampleFiles);
 

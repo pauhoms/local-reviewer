@@ -5,8 +5,8 @@ use std::path::Path;
 use crate::review::model::{Comment, Review};
 use crate::review::{reviews_dir, write_state_file, ReviewError, ReviewResult};
 
-const HEADER: &str = "# Review\n\n## Comentarios\n\n";
-const NOTHING: &str = "Sin comentarios.\n";
+const HEADER: &str = "# Review\n\n## Comments\n\n";
+const NOTHING: &str = "No comments.\n";
 const SEPARATOR: &str = "\n---\n\n";
 
 /// A thousand exports in one day is a bug going round, not a reviewer at work:
@@ -19,9 +19,9 @@ fn line_range_label(from: u32, to: u32) -> String {
     let first = from.min(to);
     let last = from.max(to);
     if first == last {
-        format!("Línea {first}")
+        format!("Line {first}")
     } else {
-        format!("Líneas {first}-{last}")
+        format!("Lines {first}-{last}")
     }
 }
 
@@ -121,7 +121,7 @@ fn export_into(dir: &Path, day: &str, review: &Review, order: &[String]) -> Revi
             .into_owned(),
         source: io::Error::new(
             io::ErrorKind::AlreadyExists,
-            format!("ya hay {MAX_PER_DAY} revisiones exportadas hoy"),
+            format!("{MAX_PER_DAY} reviews have already been exported today"),
         ),
     })
 }
@@ -149,7 +149,7 @@ mod tests {
     fn review(comments: Vec<Comment>) -> Review {
         Review {
             scope: Scope::Worktree {
-                repo: "/home/dev/reviewv4".to_string(),
+                repo: "/home/dev/local-reviewer".to_string(),
             },
             comments,
             view: DiffView::Unified,
@@ -175,7 +175,7 @@ mod tests {
     fn a_review_with_nothing_written_on_it_says_so() {
         assert_eq!(
             render(&review(Vec::new()), &[]),
-            "# Review\n\n## Comentarios\n\nSin comentarios.\n"
+            "# Review\n\n## Comments\n\nNo comments.\n"
         );
     }
 
@@ -183,7 +183,7 @@ mod tests {
     fn one_comment_is_a_heading_an_anchor_and_its_text() {
         assert_eq!(
             render(&review(vec![note("a.ts", 4, 4, "algo")]), &order(&["a.ts"])),
-            "# Review\n\n## Comentarios\n\n### a.ts\n\nLínea 4\n\nalgo\n"
+            "# Review\n\n## Comments\n\n### a.ts\n\nLine 4\n\nalgo\n"
         );
     }
 
@@ -195,8 +195,8 @@ mod tests {
 
         assert_eq!(
             render(&review, &order(&["b.ts", "a.ts"])),
-            "# Review\n\n## Comentarios\n\n### b.ts\n\nLínea 1\n\nen b\n\
-             \n---\n\n### a.ts\n\nLínea 9\n\nen a\n"
+            "# Review\n\n## Comments\n\n### b.ts\n\nLine 1\n\nen b\n\
+             \n---\n\n### a.ts\n\nLine 9\n\nen a\n"
         );
     }
 
@@ -209,8 +209,8 @@ mod tests {
 
         assert_eq!(
             render(&review, &order(&["a.ts"])),
-            "# Review\n\n## Comentarios\n\n### a.ts\n\nLíneas 20-90\n\nla primera\n\
-             \n---\n\n### a.ts\n\nLíneas 30-40\n\nla segunda\n"
+            "# Review\n\n## Comments\n\n### a.ts\n\nLines 20-90\n\nla primera\n\
+             \n---\n\n### a.ts\n\nLines 30-40\n\nla segunda\n"
         );
     }
 
@@ -234,7 +234,7 @@ mod tests {
 
         assert_eq!(
             render(&review, &order(&["a.ts"])),
-            "# Review\n\n## Comentarios\n\n### a.ts\n\nLínea 1\n\nuno \n\n\t  dos\n"
+            "# Review\n\n## Comments\n\n### a.ts\n\nLine 1\n\nuno \n\n\t  dos\n"
         );
     }
 
@@ -247,7 +247,7 @@ mod tests {
 
         assert_eq!(
             render(&review, &order(&["a.ts"])),
-            "# Review\n\n## Comentarios\n\n### a.ts\n\nLínea 2\n\nesta sí\n"
+            "# Review\n\n## Comments\n\n### a.ts\n\nLine 2\n\nesta sí\n"
         );
     }
 
@@ -257,7 +257,7 @@ mod tests {
 
         assert_eq!(
             render(&review, &order(&["a.ts", "b.ts"])),
-            "# Review\n\n## Comentarios\n\nSin comentarios.\n"
+            "# Review\n\n## Comments\n\nNo comments.\n"
         );
     }
 

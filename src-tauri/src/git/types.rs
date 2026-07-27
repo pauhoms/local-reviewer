@@ -107,27 +107,27 @@ pub struct DirEntryInfo {
 
 #[derive(Debug, thiserror::Error)]
 pub enum GitError {
-    #[error("{0} no es un repositorio git")]
+    #[error("{0} is not a Git repository")]
     NotAGitRepo(String),
-    #[error("no se pudo determinar tu directorio personal")]
+    #[error("could not determine your home directory")]
     NoHome,
-    #[error("{0} está fuera de tu directorio personal")]
+    #[error("{0} is outside your home directory")]
     PathOutsideHome(String),
-    #[error("«{0}» está fuera del repositorio")]
+    #[error("\"{0}\" is outside the repository")]
     PathOutsideRepo(String),
-    #[error("la referencia «{0}» no existe en este repositorio")]
+    #[error("reference \"{0}\" does not exist in this repository")]
     BadRef(String),
-    #[error("la referencia «{0}» no apunta a un commit")]
+    #[error("reference \"{0}\" does not point to a commit")]
     NotACommit(String),
-    #[error("opción desconocida «{0}». Uso: reviewer [<commit>|<a>..<b>]")]
+    #[error("unknown option \"{0}\". Usage: reviewer [<commit>|<a>..<b>]")]
     UnknownOption(String),
-    #[error("el argumento «{0}» no es texto válido")]
+    #[error("argument \"{0}\" is not valid text")]
     NonUtf8Argument(String),
-    #[error("sobra el argumento «{0}»: solo se revisa un alcance a la vez. Uso: reviewer [<commit>|<a>..<b>]")]
+    #[error("unexpected argument \"{0}\": only one scope can be reviewed at a time. Usage: reviewer [<commit>|<a>..<b>]")]
     UnexpectedArgument(String),
-    #[error("git falló: {0}")]
+    #[error("Git failed: {0}")]
     CommandFailed(String),
-    #[error("no se pudo leer {path}: {source}")]
+    #[error("could not read {path}: {source}")]
     Io {
         path: String,
         #[source]

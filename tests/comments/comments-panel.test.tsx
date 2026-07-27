@@ -5,15 +5,15 @@
  * The DOM contract these tests assume (invented where the spec is silent, see
  * the phase report):
  *
- *   panel 3   `role="region"` named `3 COMENTARIOS` (already the case).
+ *   panel 3   `role="region"` named `3 COMMENTS` (already the case).
  *   entry     `role="option"` inside it, with `data-comment-id`, `data-path`,
  *             `data-comment-side` (`old` / `new`), `aria-selected` +
  *             `data-cursor` for the cursor and `aria-expanded` for the fold.
- *   range     `[data-comment-range]` inside the entry: `Línea 35` for one line,
- *             `Líneas 35-37` for a range — the wording TS-40 fixes for the export.
+ *   range     `[data-comment-range]` inside the entry: `Line 35` for one line,
+ *             `Lines 35-37` for a range — the wording TS-40 fixes for the export.
  *   summary   `[data-comment-summary]` inside the entry, gone while it is folded.
  *   editor    a `textbox` (textarea) inside panel 3, mounted only while editing.
- *   resume    text matching /retomar/i naming how many comments are waiting;
+ *   resume    text matching /resume/i naming how many comments are waiting;
  *             `Enter` accepts, `Esc` declines.
  *
  * Keys: `zc` / `zo` fold and unfold (the phase mockup's help line),
@@ -35,7 +35,7 @@ import { configureIpc, loadReview, saveReview } from "../helpers/ipc-mock";
 import { reviewStore } from "@/state/review";
 import type { ReviewComment } from "@/state/review";
 
-const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/reviewv4" };
+const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/local-reviewer" };
 
 function context(oldNo: number, newNo: number, content: string): Line {
   return { kind: "context", oldNo, newNo, content };
@@ -174,7 +174,7 @@ function commentEntriesAnywhere(): HTMLElement[] {
 
 function entryOf(id: string): HTMLElement {
   const found = entries().find((node) => node.getAttribute("data-comment-id") === id);
-  if (!found) throw new Error(`no hay entrada para ${id}; hay ${entryIds().join(", ")}`);
+  if (!found) throw new Error(`there is no entry for ${id}; found ${entryIds().join(", ")}`);
   return found;
 }
 
@@ -188,7 +188,7 @@ function textOf(node: Element | null): string {
 
 function rangeOf(id: string): string {
   const node = partOf(entryOf(id), "data-comment-range");
-  if (!node) throw new Error(`la entrada ${id} no expone [data-comment-range]`);
+  if (!node) throw new Error(`entry ${id} does not expose [data-comment-range]`);
   return textOf(node);
 }
 
@@ -208,7 +208,7 @@ function pathOf(id: string): string | null {
 function cursorId(): string | null {
   const marked = entries().filter((node) => node.getAttribute("data-cursor") === "true");
   if (marked.length > 1) {
-    throw new Error(`hay ${marked.length} comentarios con cursor a la vez`);
+    throw new Error(`${marked.length} comments have the cursor at the same time`);
   }
   return marked[0]?.getAttribute("data-comment-id") ?? null;
 }
@@ -220,7 +220,7 @@ function editor(): HTMLTextAreaElement | null {
 
 function requireEditor(): HTMLTextAreaElement {
   const node = editor();
-  if (node === null) throw new Error("el panel 3 no tiene ningún editor montado");
+  if (node === null) throw new Error("panel 3 has no mounted editor");
   return node;
 }
 
@@ -234,7 +234,7 @@ function diffRows(): HTMLElement[] {
 
 function diffCursorIndex(): number {
   const marked = diffRows().filter((row) => row.getAttribute("data-cursor") === "true");
-  if (marked.length > 1) throw new Error(`hay ${marked.length} líneas con cursor a la vez`);
+  if (marked.length > 1) throw new Error(`${marked.length} lines have the cursor at the same time`);
   if (marked.length === 0) return -1;
   return Number(marked[0].getAttribute("data-line-index"));
 }
@@ -243,7 +243,7 @@ function treeRowAt(path: string): HTMLElement {
   const row = within(panel("tree"))
     .getAllByRole("option")
     .find((node) => node.getAttribute("data-path") === path);
-  if (!row) throw new Error(`el árbol no tiene fila para ${path}`);
+  if (!row) throw new Error(`the tree has no row for ${path}`);
   return row;
 }
 
@@ -257,12 +257,12 @@ function mode(): string {
   for (const name of ["NORMAL", "VISUAL", "INSERT"]) {
     if (screen.queryByText(name) !== null) return name;
   }
-  throw new Error("la cabecera no muestra ningún modo");
+  throw new Error("the header does not show any mode");
 }
 
 function lastSaved(): Review {
   const calls = saveReview.mock.calls;
-  if (calls.length === 0) throw new Error("nadie ha llamado a save_review todavía");
+  if (calls.length === 0) throw new Error("save_review has not been called yet");
   return calls[calls.length - 1][0];
 }
 
@@ -289,7 +289,7 @@ function setUp(files: FileDiff[] = FILES, reviews: Review[] = []): void {
 async function boot(files: FileDiff[] = FILES): Promise<UserEvent> {
   setUp(files);
   render(<App />);
-  await screen.findByRole("region", { name: /^1 ÁRBOL/ });
+  await screen.findByRole("region", { name: /^1 FILES/ });
   const user = userEvent.setup();
   await act(async () => undefined);
   return user;
@@ -322,7 +322,7 @@ async function writeComment(
   await user.keyboard("{Control>}{Enter}{/Control}");
   const fresh = entryIds().filter((id) => !before.includes(id));
   if (fresh.length !== 1) {
-    throw new Error(`se esperaba un comentario nuevo, aparecieron ${fresh.length}`);
+    throw new Error(`expected one new comment, found ${fresh.length}`);
   }
   return fresh[0];
 }
@@ -369,7 +369,7 @@ describe("c turns a visual selection into a comment", () => {
     expect(mode()).toBe("INSERT");
     expect(activePanels()).toEqual(["comments"]);
     expect(entryIds()).toHaveLength(1);
-    expect(rangeOf(entryIds()[0])).toBe("Líneas 35-37");
+    expect(rangeOf(entryIds()[0])).toBe("Lines 35-37");
     expect(requireEditor()).toHaveFocus();
     expect(requireEditor()).toHaveValue("");
   });
@@ -477,7 +477,7 @@ describe("c turns a visual selection into a comment", () => {
 
     expect(mode()).toBe("INSERT");
     expect(entryIds()).toHaveLength(1);
-    expect(rangeOf(entryIds()[0])).toBe("Líneas 33-34");
+    expect(rangeOf(entryIds()[0])).toBe("Lines 33-34");
     expect(requireEditor()).toHaveFocus();
   });
 });
@@ -540,7 +540,7 @@ describe("the anchor takes the side of the lines it covers", () => {
     const id = await writeComment(user, 2, 4, "nota");
 
     expect(sideOf(id)).toBe("new");
-    expect(rangeOf(id)).toBe("Líneas 35-37");
+    expect(rangeOf(id)).toBe("Lines 35-37");
     await waitFor(() => {
       expect(lastSaved().comments[0]).toMatchObject({ side: "new", from: 35, to: 37 });
     });
@@ -552,7 +552,7 @@ describe("the anchor takes the side of the lines it covers", () => {
     const id = await writeComment(user, 5, 6, "esto se va");
 
     expect(sideOf(id)).toBe("old");
-    expect(rangeOf(id)).toBe("Líneas 35-36");
+    expect(rangeOf(id)).toBe("Lines 35-36");
     await waitFor(() => {
       expect(lastSaved().comments[0]).toMatchObject({ side: "old", from: 35, to: 36 });
     });
@@ -564,7 +564,7 @@ describe("the anchor takes the side of the lines it covers", () => {
     const id = await writeComment(user, 6, 6, "y esta también");
 
     expect(sideOf(id)).toBe("old");
-    expect(rangeOf(id)).toBe("Línea 36");
+    expect(rangeOf(id)).toBe("Line 36");
     await waitFor(() => {
       expect(lastSaved().comments[0]).toMatchObject({ side: "old", from: 36, to: 36 });
     });
@@ -577,7 +577,7 @@ describe("the anchor takes the side of the lines it covers", () => {
     const id = await writeComment(user, 4, 7, "mezcla");
 
     expect(sideOf(id)).toBe("new");
-    expect(rangeOf(id)).toBe("Líneas 37-38");
+    expect(rangeOf(id)).toBe("Lines 37-38");
     await waitFor(() => {
       expect(lastSaved().comments[0]).toMatchObject({ side: "new", from: 37, to: 38 });
     });
@@ -589,7 +589,7 @@ describe("the anchor takes the side of the lines it covers", () => {
     const id = await writeComment(user, 9, 9, "contexto");
 
     expect(sideOf(id)).toBe("new");
-    expect(rangeOf(id)).toBe("Línea 100");
+    expect(rangeOf(id)).toBe("Line 100");
   });
 
   it("TS-31: a selection across two hunks keeps the ends of the new side", async () => {
@@ -598,7 +598,7 @@ describe("the anchor takes the side of the lines it covers", () => {
     const id = await writeComment(user, 7, 10, "de un hunk al otro");
 
     expect(sideOf(id)).toBe("new");
-    expect(rangeOf(id)).toBe("Líneas 38-101");
+    expect(rangeOf(id)).toBe("Lines 38-101");
   });
 
   it("TS-31: the first and the last line of a file are both anchorable", async () => {
@@ -608,10 +608,10 @@ describe("the anchor takes the side of the lines it covers", () => {
     expect(diffPanel()).toHaveTextContent(TS_PATH);
 
     const first = await writeComment(user, 0, 0, "la primera");
-    expect(rangeOf(first)).toBe("Línea 1");
+    expect(rangeOf(first)).toBe("Line 1");
 
     const last = await writeComment(user, 2, 2, "la última");
-    expect(rangeOf(last)).toBe("Línea 3");
+    expect(rangeOf(last)).toBe("Line 3");
     expect(pathOf(last)).toBe(TS_PATH);
   });
 
@@ -621,7 +621,7 @@ describe("the anchor takes the side of the lines it covers", () => {
     const id = await writeComment(user, 0, 1, "adiós");
 
     expect(sideOf(id)).toBe("old");
-    expect(rangeOf(id)).toBe("Líneas 1-2");
+    expect(rangeOf(id)).toBe("Lines 1-2");
     expect(pathOf(id)).toBe(GONE_PATH);
   });
 });
@@ -635,7 +635,7 @@ describe("the list shows every comment", () => {
     await boot();
 
     expect(entries()).toHaveLength(0);
-    expect(commentsPanel()).toHaveTextContent(/sin comentarios|no hay comentarios/i);
+    expect(commentsPanel()).toHaveTextContent(/no comments/i);
   });
 
   it("TS-32: every entry carries its file, its line range and a short summary", async () => {
@@ -650,12 +650,12 @@ describe("the list shows every comment", () => {
 
     expect(pathOf("c1")).toBe(PHP_PATH);
     expect(entryOf("c1")).toHaveTextContent("UserService.php");
-    expect(rangeOf("c1")).toBe("Líneas 35-48");
+    expect(rangeOf("c1")).toBe("Lines 35-48");
     expect(summaryOf("c1")).toContain("El método tiene demasiadas responsabilidades.");
 
-    expect(rangeOf("c2")).toBe("Línea 102");
+    expect(rangeOf("c2")).toBe("Line 102");
     expect(entryOf("c3")).toHaveTextContent("Order.ts");
-    expect(rangeOf("c3")).toBe("Líneas 15-26");
+    expect(rangeOf("c3")).toBe("Lines 15-26");
   });
 
   it("TS-32: a long text is cut down to a summary, not shown whole", async () => {
@@ -742,7 +742,7 @@ describe("the list shows every comment", () => {
 
     await user.keyboard("3{Enter}");
 
-    expect(diffPanel()).toHaveTextContent(/no está en los cambios/i);
+    expect(diffPanel()).toHaveTextContent(/not part of these changes/i);
     expect(entryIds()).toEqual(["c1"]);
   });
 
@@ -763,7 +763,7 @@ describe("the list shows every comment", () => {
     expect(entryOf("c1")).toHaveTextContent("▸");
     expect(summaryOf("c1")).toBeNull();
     // Folding hides the text, never the anchor: that is what identifies the row.
-    expect(rangeOf("c1")).toBe("Líneas 35-48");
+    expect(rangeOf("c1")).toBe("Lines 35-48");
     expect(entryOf("c1")).toHaveTextContent("UserService.php");
     expect(summaryOf("c2")).toContain("El nombre no refleja lo que hace.");
 
@@ -828,7 +828,7 @@ describe("editing a comment from panel 3", () => {
     expect(activePanels()).toEqual(["comments"]);
     expect(entryIds()).toEqual(["c1"]);
     expect(summaryOf("c1")).toContain("texto corregido");
-    expect(rangeOf("c1")).toBe("Líneas 35-37");
+    expect(rangeOf("c1")).toBe("Lines 35-37");
     expect(pathOf("c1")).toBe(PHP_PATH);
     await waitFor(() => {
       expect(lastSaved().comments.find((comment) => comment.id === "c1")?.text).toBe(
@@ -861,13 +861,13 @@ describe("editing a comment from panel 3", () => {
 
     expect(editor()).toBeNull();
     expect(mode()).toBe("NORMAL");
-    expect(commentsPanel()).toHaveTextContent(/sin comentarios/i);
+    expect(commentsPanel()).toHaveTextContent(/no comments/i);
   });
 
   it("shows the edit shortcut in the panel help", async () => {
     await boot();
 
-    expect(commentsPanel().querySelector(".panel-help")).toHaveTextContent(/i editar/i);
+    expect(commentsPanel().querySelector(".panel-help")).toHaveTextContent(/i edit/i);
   });
 });
 
@@ -904,7 +904,7 @@ describe("dd deletes the comment under the cursor", () => {
 
     expect(entries()).toHaveLength(0);
     expect(treeRowAt(TS_PATH)).not.toHaveTextContent("●");
-    expect(commentsPanel()).toHaveTextContent(/sin comentarios|no hay comentarios/i);
+    expect(commentsPanel()).toHaveTextContent(/no comments/i);
   });
 
   it("TS-33: the deletion reaches the state file", async () => {
@@ -932,7 +932,7 @@ describe("dd deletes the comment under the cursor", () => {
 
     expect(entries()).toHaveLength(0);
     expect(mode()).toBe("NORMAL");
-    expect(commentsPanel()).toHaveTextContent(/sin comentarios|no hay comentarios/i);
+    expect(commentsPanel()).toHaveTextContent(/no comments/i);
   });
 
   it("TS-33: a burst of dd deletes one comment per pair, not the same one twice", async () => {
@@ -1020,35 +1020,35 @@ describe("reopening the same scope offers to resume the review", () => {
   it("TS-34: offers to resume and holds the comments back until it is accepted", async () => {
     await bootWithState([storedReview(SAVED)]);
 
-    await screen.findByText(/retomar/i);
-    expect(document.body).toHaveTextContent(/2 comentarios/i);
+    await screen.findByText(/resume/i);
+    expect(document.body).toHaveTextContent(/2 saved comments/i);
     expect(commentEntriesAnywhere()).toHaveLength(0);
     expect(loadReview).toHaveBeenCalledWith(SCOPE);
   });
 
   it("TS-34: accepting brings every comment back with its anchor", async () => {
     const user = await bootWithState([storedReview(SAVED)]);
-    await screen.findByText(/retomar/i);
+    await screen.findByText(/resume/i);
 
     await user.keyboard("{Enter}");
 
-    await screen.findByRole("region", { name: /^1 ÁRBOL/ });
-    expect(screen.queryByText(/retomar/i)).toBeNull();
+    await screen.findByRole("region", { name: /^1 FILES/ });
+    expect(screen.queryByText(/resume/i)).toBeNull();
 
     expect(entryIds()).toEqual(["c1", "c2"]);
-    expect(rangeOf("c1")).toBe("Líneas 35-37");
+    expect(rangeOf("c1")).toBe("Lines 35-37");
     expect(sideOf("c1")).toBe("new");
     expect(summaryOf("c1")).toContain("Separar validación de persistencia.");
-    expect(rangeOf("c2")).toBe("Línea 36");
+    expect(rangeOf("c2")).toBe("Line 36");
     expect(sideOf("c2")).toBe("old");
     expect(treeRowAt(PHP_PATH)).toHaveTextContent(/●\s*2/);
   });
 
   it("TS-34: the comments that came back still jump to their line", async () => {
     const user = await bootWithState([storedReview(SAVED)]);
-    await screen.findByText(/retomar/i);
+    await screen.findByText(/resume/i);
     await user.keyboard("{Enter}");
-    await screen.findByRole("region", { name: /^1 ÁRBOL/ });
+    await screen.findByRole("region", { name: /^1 FILES/ });
 
     await user.keyboard("3{Enter}");
     expect(diffCursorIndex()).toBe(2);
@@ -1059,15 +1059,15 @@ describe("reopening the same scope offers to resume the review", () => {
 
   it("TS-34: turning the offer down starts the review with no comments", async () => {
     const user = await bootWithState([storedReview(SAVED)]);
-    await screen.findByText(/retomar/i);
+    await screen.findByText(/resume/i);
 
     await user.keyboard("{Escape}");
 
-    await screen.findByRole("region", { name: /^1 ÁRBOL/ });
-    expect(screen.queryByText(/retomar/i)).toBeNull();
+    await screen.findByRole("region", { name: /^1 FILES/ });
+    expect(screen.queryByText(/resume/i)).toBeNull();
     expect(entries()).toHaveLength(0);
     expect(treeRowAt(PHP_PATH)).not.toHaveTextContent("●");
-    expect(commentsPanel()).toHaveTextContent(/sin comentarios|no hay comentarios/i);
+    expect(commentsPanel()).toHaveTextContent(/no comments/i);
   });
 
   it("TS-34: a comment of a file that is no longer in the diff still comes back", async () => {
@@ -1076,18 +1076,18 @@ describe("reopening the same scope offers to resume the review", () => {
         { id: "c9", path: "src/Borrado.php", side: "old", from: 12, to: 14, text: "ya no está" },
       ]),
     ]);
-    await screen.findByText(/retomar/i);
+    await screen.findByText(/resume/i);
 
     await user.keyboard("{Enter}");
-    await screen.findByRole("region", { name: /^1 ÁRBOL/ });
+    await screen.findByRole("region", { name: /^1 FILES/ });
 
     expect(entryIds()).toEqual(["c9"]);
     expect(pathOf("c9")).toBe("src/Borrado.php");
-    expect(rangeOf("c9")).toBe("Líneas 12-14");
+    expect(rangeOf("c9")).toBe("Lines 12-14");
   });
 
   it("TS-34: another scope is not offered the comments of this one", async () => {
-    const other: Scope = { kind: "commit", repo: "/home/dev/reviewv4", sha: "a1b2c3" };
+    const other: Scope = { kind: "commit", repo: "/home/dev/local-reviewer", sha: "a1b2c3" };
     configureIpc({
       startup: { scope: other, home: "/home/dev" },
       diff: FILES,
@@ -1095,10 +1095,10 @@ describe("reopening the same scope offers to resume the review", () => {
     });
     render(<App />);
 
-    await screen.findByRole("region", { name: /^1 ÁRBOL/ });
+    await screen.findByRole("region", { name: /^1 FILES/ });
     await act(async () => undefined);
 
-    expect(screen.queryByText(/retomar/i)).toBeNull();
+    expect(screen.queryByText(/resume/i)).toBeNull();
     expect(entries()).toHaveLength(0);
     expect(loadReview).toHaveBeenCalledWith(other);
   });
@@ -1106,10 +1106,10 @@ describe("reopening the same scope offers to resume the review", () => {
   it("TS-34: a scope with nothing saved goes straight to the three panels", async () => {
     const user = await bootWithState([]);
 
-    await screen.findByRole("region", { name: /^1 ÁRBOL/ });
-    expect(screen.queryByText(/retomar/i)).toBeNull();
+    await screen.findByRole("region", { name: /^1 FILES/ });
+    expect(screen.queryByText(/resume/i)).toBeNull();
     expect(entries()).toHaveLength(0);
-    expect(commentsPanel()).toHaveTextContent(/sin comentarios|no hay comentarios/i);
+    expect(commentsPanel()).toHaveTextContent(/no comments/i);
 
     // And the review is perfectly usable: a comment written now is the first one.
     const id = await writeComment(user, 2, 4, "el primero de la revisión");
@@ -1121,20 +1121,20 @@ describe("reopening the same scope offers to resume the review", () => {
     loadReview.mockImplementationOnce(() => Promise.reject(new Error("estado ilegible")));
     render(<App />);
 
-    await screen.findByRole("region", { name: /^1 ÁRBOL/ });
+    await screen.findByRole("region", { name: /^1 FILES/ });
     await act(async () => undefined);
 
-    expect(screen.queryByText(/retomar/i)).toBeNull();
+    expect(screen.queryByText(/resume/i)).toBeNull();
     expect(diffPanel()).toHaveTextContent(PHP_PATH);
     expect(entries()).toHaveLength(0);
-    expect(commentsPanel()).toHaveTextContent(/sin comentarios|no hay comentarios/i);
+    expect(commentsPanel()).toHaveTextContent(/no comments/i);
   });
 
   it("TS-34: what is written after resuming is saved next to what came back", async () => {
     const user = await bootWithState([storedReview(SAVED)]);
-    await screen.findByText(/retomar/i);
+    await screen.findByText(/resume/i);
     await user.keyboard("{Enter}");
-    await screen.findByRole("region", { name: /^1 ÁRBOL/ });
+    await screen.findByRole("region", { name: /^1 FILES/ });
 
     const id = await writeComment(user, 10, 10, "y esto también");
 

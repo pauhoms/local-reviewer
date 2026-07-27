@@ -12,7 +12,7 @@ import App from "@/App";
 import { configureIpc, readBlob } from "../helpers/ipc-mock";
 import { reviewStore } from "@/state/review";
 
-const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/reviewv4" };
+const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/local-reviewer" };
 
 const DEFAULT_READ_BLOB = readBlob.getMockImplementation();
 
@@ -43,7 +43,7 @@ const PHP_NEW = [
   "        $this->repo->save($u);",
   "    }",
   "",
-  "    /* Mapea la fila cruda del repositorio.",
+  "    /* Maps the raw repository row.",
   "     * public function ghost(): void",
   "     */",
   "    private function map(array $row): User {",
@@ -62,7 +62,7 @@ const PHP_OLD = [
   "        $this->repo->persist($u);",
   "    }",
   "",
-  "    /* Mapea la fila cruda del repositorio.",
+  "    /* Maps the raw repository row.",
   "     * public function ghost(): void",
   "     * public function legacy(): void",
   "     */",
@@ -177,7 +177,7 @@ function diffPanel(): HTMLElement {
 
 function viewport(): HTMLElement {
   const node = diffPanel().querySelector<HTMLElement>("[data-diff-viewport]");
-  if (!node) throw new Error("el panel 2 no expone ningún [data-diff-viewport]");
+  if (!node) throw new Error("panel 2 does not expose [data-diff-viewport]");
   return node;
 }
 
@@ -191,7 +191,7 @@ function mountedIndexes(): number[] {
 
 function rowAt(index: number): HTMLElement {
   const row = lineRows().find((candidate) => Number(candidate.getAttribute("data-line-index")) === index);
-  if (!row) throw new Error(`la línea ${index} no está montada; hay ${mountedIndexes().join(", ")}`);
+  if (!row) throw new Error(`line ${index} is not mounted; found ${mountedIndexes().join(", ")}`);
   return row;
 }
 
@@ -201,7 +201,7 @@ function partOf(row: HTMLElement, attribute: string): HTMLElement | null {
 
 function contentEl(row: HTMLElement): HTMLElement {
   const node = partOf(row, "data-line-content");
-  if (!node) throw new Error(`la línea ${row.getAttribute("data-line-index")} no tiene [data-line-content]`);
+  if (!node) throw new Error(`line ${row.getAttribute("data-line-index")} has no [data-line-content]`);
   return node;
 }
 
@@ -235,7 +235,7 @@ function cursorIndex(): number {
   const marked = lineRows().filter((row) => row.getAttribute("data-cursor") === "true");
   if (marked.length > 1) {
     const indexes = marked.map((row) => row.getAttribute("data-line-index")).join(", ");
-    throw new Error(`hay ${marked.length} líneas con cursor a la vez: ${indexes}`);
+    throw new Error(`${marked.length} lines have the cursor at the same time: ${indexes}`);
   }
   if (marked.length === 0) return -1;
   return Number(marked[0].getAttribute("data-line-index"));
@@ -250,7 +250,7 @@ function selectedIndexes(): number[] {
 function pageSize(): number {
   const value = Number(viewport().getAttribute("data-page-size"));
   if (!Number.isInteger(value) || value < 1) {
-    throw new Error(`data-page-size no es un número de filas: ${viewport().getAttribute("data-page-size")}`);
+    throw new Error(`data-page-size is not a row count: ${viewport().getAttribute("data-page-size")}`);
   }
   return value;
 }
@@ -259,7 +259,7 @@ function visibleWindow(): [number, number] {
   const first = Number(viewport().getAttribute("data-first-visible"));
   const last = Number(viewport().getAttribute("data-last-visible"));
   if (!Number.isInteger(first) || !Number.isInteger(last) || first > last) {
-    throw new Error(`la ventana visible no es un rango: ${first}..${last}`);
+    throw new Error(`the visible window is not a range: ${first}..${last}`);
   }
   return [first, last];
 }
@@ -300,7 +300,7 @@ async function boot(
 ): Promise<UserEvent> {
   configureIpc({ startup: { scope: SCOPE, home: "/home/dev" }, diff: files, blobs });
   render(<App />);
-  await screen.findByRole("region", { name: /^1 ÁRBOL/ });
+  await screen.findByRole("region", { name: /^1 FILES/ });
   const user = userEvent.setup();
   await user.keyboard("2");
   await act(async () => undefined);
@@ -330,7 +330,7 @@ function gateBlobs(): BlobGate {
       const sides: Side[] = ["old", "new"];
       const waiting = sides.filter((side) => pending.has(`${side}:${path}`));
       if (waiting.length === 0) {
-        throw new Error(`nadie está esperando el blob de ${path}; se pidió ${asked.join(", ")}`);
+        throw new Error(`no request is waiting for the ${path} blob; requested ${asked.join(", ")}`);
       }
       await act(async () => {
         for (const side of waiting) {
@@ -430,7 +430,7 @@ describe("the diff panel shows the hunks of the selected file", () => {
     const user = await boot([binary]);
 
     expect(lineRows()).toEqual([]);
-    expect(diffPanel()).toHaveTextContent(/sin líneas que mostrar/i);
+    expect(diffPanel()).toHaveTextContent(/no lines to display/i);
 
     await user.keyboard("jkv");
     await user.keyboard("{Escape}");
@@ -450,7 +450,7 @@ describe("the diff panel shows the hunks of the selected file", () => {
     const user = await boot([emptyHunk]);
 
     expect(lineRows()).toEqual([]);
-    expect(diffPanel()).toHaveTextContent(/sin líneas que mostrar/i);
+    expect(diffPanel()).toHaveTextContent(/no lines to display/i);
 
     await user.keyboard("{Shift>}G{/Shift}");
     expect(cursorIndex()).toBe(-1);
@@ -462,7 +462,7 @@ describe("the diff panel shows the hunks of the selected file", () => {
     act(() => reviewStore.selectFile("src/no/existe.ts"));
 
     expect(lineRows()).toEqual([]);
-    expect(diffPanel()).toHaveTextContent(/no está en los cambios/i);
+    expect(diffPanel()).toHaveTextContent(/not part of these changes/i);
   });
 
   it("TS-23: keeps empty lines, tabs, non-ASCII text, emoji and very long lines", async () => {

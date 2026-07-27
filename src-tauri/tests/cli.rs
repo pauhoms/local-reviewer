@@ -7,8 +7,8 @@ mod helpers;
 use std::fs;
 
 use helpers::git_fixture::{canonical, path_str, TempRepo};
-use reviewv4_lib::cli::{parse_args, Startup, StartupInfo};
-use reviewv4_lib::git::{GitError, Scope};
+use local_reviewer_lib::cli::{parse_args, Startup, StartupInfo};
+use local_reviewer_lib::git::{GitError, Scope};
 use serde_json::json;
 use tempfile::TempDir;
 
@@ -123,7 +123,7 @@ fn ts14_an_unknown_ref_fails_with_a_typed_actionable_error() {
         "the message must name the ref: {message}"
     );
     assert!(
-        message.contains("no existe"),
+        message.contains("does not exist"),
         "the message must say the ref does not exist: {message}"
     );
 }
@@ -200,12 +200,12 @@ fn ts14_help_returns_the_usage_text_without_needing_a_repo() {
             "reviewer",
             "<commit>",
             "<a>..<b>",
-            "sin argumentos",
-            "selección",
+            "no arguments",
+            "repository picker",
         ] {
             assert!(
                 usage.contains(fragment),
-                "the usage of {flag} must document «{fragment}»:\n{usage}"
+                "the usage of {flag} must document \"{fragment}\":\n{usage}"
             );
         }
     }

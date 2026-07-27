@@ -17,8 +17,7 @@ function keepFocus(event: { preventDefault: () => void }): void {
 }
 
 /**
- * «Export Review» and «Copy Path» keep their English names: they are the two
- * actions the product names, and what the reviewer hands to Codex.
+ * These labels match the actions named throughout the product and README.
  */
 export default function Toolbar({
   path,
@@ -52,12 +51,12 @@ export default function Toolbar({
       </button>
       {copied && (
         <span className="toolbar-copied" role="status">
-          copiada ✓
+          copied ✓
         </span>
       )}
       {path !== null && (
         <p className="toolbar-exported">
-          Review exportada:{" "}
+          Review exported:{" "}
           <code className="toolbar-path" data-export-path="">
             {path}
           </code>

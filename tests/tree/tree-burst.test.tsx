@@ -9,7 +9,7 @@ import App from "@/App";
 import { configureIpc } from "../helpers/ipc-mock";
 import { reviewStore } from "@/state/review";
 
-const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/reviewv4" };
+const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/local-reviewer" };
 
 function fileDiff(path: string): FileDiff {
   return { path, oldPath: null, status: "M", additions: 1, deletions: 0, hunks: [] };
@@ -26,7 +26,7 @@ const FILES: FileDiff[] = [
 async function boot(): Promise<void> {
   configureIpc({ startup: { scope: SCOPE, home: "/home/dev" }, diff: FILES });
   render(<App />);
-  await screen.findByRole("region", { name: /^1 ÁRBOL/ });
+  await screen.findByRole("region", { name: /^1 FILES/ });
   // The store is a singleton: an IPC promise still in flight from an earlier
   // test would land mid-burst and reopen the review, resetting the cursor.
   await act(async () => undefined);

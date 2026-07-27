@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
-# TS-44 — el build de release y el humo del binario que produce, más el viaje
-# completo hasta el lanzador instalado. Vive fuera de `npm test` y de `cargo
-# test` a propósito: tarda minutos y depende del entorno (WebKitGTK, red para
-# el bundler de AppImage), así que no puede estar en el bucle de desarrollo.
+# TS-44 — the release build, a smoke test of the resulting binary, and the full
+# path through the installed launcher. This deliberately lives outside
+# `npm test` and `cargo test`: it takes minutes and depends on the environment
+# (WebKitGTK and network access for the AppImage bundler), so it cannot be part
+# of the fast development loop.
 #
-#   bash tests/smoke/build-smoke.sh              # build + humo completo
-#   bash tests/smoke/build-smoke.sh --no-build   # reusa el build anterior
+#   bash tests/smoke/build-smoke.sh              # build + full smoke test
+#   bash tests/smoke/build-smoke.sh --no-build   # reuse the previous build
 #
-# No escribe nada fuera de `src-tauri/target`, `dist` y un directorio temporal
-# propio: el HOME y el prefijo de la instalación de prueba son temporales.
+# It writes nothing outside `src-tauri/target`, `dist`, and its own temporary
+# directory: HOME and the test installation prefix are temporary.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -16,7 +17,7 @@ RELEASE_DIR="$REPO_ROOT/src-tauri/target/release"
 
 RUN_BUILD=1
 if [[ $# -gt 1 ]] || { [[ $# -eq 1 ]] && [[ "$1" != "--no-build" ]]; }; then
-  echo "uso: build-smoke.sh [--no-build]" >&2
+  echo "usage: build-smoke.sh [--no-build]" >&2
   exit 64
 fi
 [[ "${1:-}" == "--no-build" ]] && RUN_BUILD=0
@@ -28,17 +29,17 @@ fail() {
   FAILURES=$((FAILURES + 1))
 }
 
-WORK="$(mktemp -d "${TMPDIR:-/tmp}/reviewv4-smoke-XXXXXX")"
+WORK="$(mktemp -d "${TMPDIR:-/tmp}/local-reviewer-smoke-XXXXXX")"
 trap 'rm -rf "$WORK"' EXIT
 FAKE_HOME="$WORK/home"
 PREFIX="$WORK/prefix"
 OUTSIDE="$WORK/outside"
 mkdir -p "$FAKE_HOME" "$OUTSIDE"
-printf '# rc del smoke\n' > "$FAKE_HOME/.bashrc"
-printf '# rc del smoke\n' > "$FAKE_HOME/.profile"
+printf '# smoke-test rc\n' > "$FAKE_HOME/.bashrc"
+printf '# smoke-test rc\n' > "$FAKE_HOME/.profile"
 
-# El PATH deliberadamente no lleva ~/.local/bin: el instalador tiene que avisar,
-# no arreglarlo por su cuenta.
+# PATH deliberately omits ~/.local/bin: the installer must warn about it, not
+# change the user's environment.
 sandboxed() {
   env -i \
     HOME="$FAKE_HOME" \
@@ -53,13 +54,13 @@ sandboxed() {
 
 USAGE_LINES=(
   'reviewer [<commit>|<a>..<b>]'
-  '  sin argumentos   revisa los cambios sin commitear del repo actual'
-  '  <commit>         revisa un commit concreto'
-  '  <a>..<b>         revisa el acumulado de un rango de commits'
+  '  no arguments    review uncommitted changes in the current repository'
+  '  <commit>        review one commit'
+  '  <a>..<b>        review the accumulated changes in a commit range'
 )
 
-# El binario se ejecuta desde un directorio que no es un repo git y con un HOME
-# de usar y tirar: `--help` no puede depender de dónde se lanza.
+# Run the binary outside a Git repository with a disposable HOME: `--help`
+# must not depend on where it is launched.
 help_output() {
   local binary="$1" out status
   set +e
@@ -74,25 +75,25 @@ check_usage() {
   local label="$1" output="$2" line
   for line in "${USAGE_LINES[@]}"; do
     if ! printf '%s\n' "$output" | grep -qF -- "$line"; then
-      fail "$label: falta la línea de uso: $line"
+      fail "$label: missing usage line: $line"
       return
     fi
   done
   pass "$label"
 }
 
-echo "TS-44 — build de release y humo del binario"
+echo "TS-44 — release build and binary smoke test"
 
 if [[ $RUN_BUILD -eq 1 ]]; then
   BUILD_LOG="$WORK/build.log"
   if (cd "$REPO_ROOT" && npm run tauri build) > "$BUILD_LOG" 2>&1; then
-    pass "npm run tauri build termina sin errores"
+    pass "npm run tauri build completes successfully"
   else
-    fail "npm run tauri build falla (últimas líneas):"
+    fail "npm run tauri build failed (last lines):"
     tail -n 25 "$BUILD_LOG" >&2
   fi
 else
-  pass "build omitido (--no-build): se reusa $RELEASE_DIR"
+  pass "build skipped (--no-build): reusing $RELEASE_DIR"
 fi
 
 mapfile -t BINARIES < <(find "$RELEASE_DIR" -maxdepth 1 -type f -perm -u+x ! -name '*.d' ! -name '*.so' 2>/dev/null | sort)
@@ -100,49 +101,49 @@ mapfile -t BINARIES < <(find "$RELEASE_DIR" -maxdepth 1 -type f -perm -u+x ! -na
 BINARY=""
 if [[ ${#BINARIES[@]} -eq 1 ]]; then
   BINARY="${BINARIES[0]}"
-  pass "el build deja un único ejecutable: $(basename "$BINARY")"
+  pass "the build leaves exactly one executable: $(basename "$BINARY")"
 elif [[ ${#BINARIES[@]} -eq 0 ]]; then
-  fail "el build no deja ningún ejecutable en $RELEASE_DIR"
+  fail "the build leaves no executable in $RELEASE_DIR"
 else
-  fail "el build deja más de un ejecutable en $RELEASE_DIR: ${BINARIES[*]}"
+  fail "the build leaves more than one executable in $RELEASE_DIR: ${BINARIES[*]}"
 fi
 
 HELP=""
 if [[ -n "$BINARY" ]]; then
   if HELP="$(help_output "$BINARY")"; then
-    pass "el binario responde a --help con código 0"
+    pass "the binary answers --help with exit code 0"
   else
-    fail "el binario sale con código distinto de 0 en --help: $HELP"
+    fail "the binary exits with a nonzero code for --help: $HELP"
   fi
-  check_usage "el --help del binario documenta reviewer [<commit>|<a>..<b>]" "$HELP"
+  check_usage "the binary --help documents reviewer [<commit>|<a>..<b>]" "$HELP"
 fi
 
 DEB="$(find "$RELEASE_DIR/bundle" -name '*.deb' 2>/dev/null | head -n 1)"
 APPIMAGE="$(find "$RELEASE_DIR/bundle" -name '*.AppImage' 2>/dev/null | head -n 1)"
-[[ -n "$DEB" ]] && pass "el bundle deb existe: $(basename "$DEB")" || fail "no hay ningún .deb en $RELEASE_DIR/bundle"
-[[ -n "$APPIMAGE" ]] && pass "el bundle AppImage existe: $(basename "$APPIMAGE")" || fail "no hay ninguna .AppImage en $RELEASE_DIR/bundle"
+[[ -n "$DEB" ]] && pass "the deb bundle exists: $(basename "$DEB")" || fail "no .deb exists in $RELEASE_DIR/bundle"
+[[ -n "$APPIMAGE" ]] && pass "the AppImage bundle exists: $(basename "$APPIMAGE")" || fail "no .AppImage exists in $RELEASE_DIR/bundle"
 
 echo
-echo "TS-45 — instalación real bajo un prefijo temporal"
+echo "TS-45 — real installation under a temporary prefix"
 
 LAUNCHER="$PREFIX/bin/reviewer"
 DESKTOP="$PREFIX/share/applications/reviewer.desktop"
 
 if [[ ! -x "$REPO_ROOT/deploy/install.sh" ]]; then
-  fail "deploy/install.sh no existe o no es ejecutable"
+  fail "deploy/install.sh does not exist or is not executable"
 else
   set +e
   INSTALL_OUT="$(cd "$REPO_ROOT" && sandboxed ./deploy/install.sh --prefix "$PREFIX" 2>&1)"
   INSTALL_CODE=$?
   set -e
   if [[ $INSTALL_CODE -eq 0 ]]; then
-    pass "install.sh --prefix termina con código 0"
+    pass "install.sh --prefix exits with code 0"
   else
-    fail "install.sh --prefix sale con código $INSTALL_CODE: $INSTALL_OUT"
+    fail "install.sh --prefix exits with code $INSTALL_CODE: $INSTALL_OUT"
   fi
 
-  [[ -x "$LAUNCHER" ]] && pass "instala el lanzador ejecutable $LAUNCHER" || fail "no instala un lanzador ejecutable en $LAUNCHER"
-  [[ -f "$DESKTOP" ]] && pass "instala la entrada de escritorio $DESKTOP" || fail "no instala la entrada de escritorio en $DESKTOP"
+  [[ -x "$LAUNCHER" ]] && pass "installs the executable launcher at $LAUNCHER" || fail "does not install an executable launcher at $LAUNCHER"
+  [[ -f "$DESKTOP" ]] && pass "installs the desktop entry at $DESKTOP" || fail "does not install the desktop entry at $DESKTOP"
 
   if [[ -x "$LAUNCHER" ]]; then
     set +e
@@ -150,9 +151,9 @@ else
     INSTALLED_CODE=$?
     set -e
     if [[ $INSTALLED_CODE -eq 0 ]]; then
-      check_usage "el lanzador instalado responde a --help" "$INSTALLED_HELP"
+      check_usage "the installed launcher answers --help" "$INSTALLED_HELP"
     else
-      fail "el lanzador instalado sale con código $INSTALLED_CODE: $INSTALLED_HELP"
+      fail "the installed launcher exits with code $INSTALLED_CODE: $INSTALLED_HELP"
     fi
   fi
 
@@ -163,30 +164,30 @@ else
     EXEC_BIN="${EXEC_BIN%\"}"
     EXEC_BIN="${EXEC_BIN#\"}"
     if [[ "$EXEC_BIN" == "$LAUNCHER" ]]; then
-      pass "el Exec del .desktop instalado apunta al lanzador instalado"
+      pass "the installed .desktop Exec points to the installed launcher"
     else
-      fail "el Exec del .desktop instalado es '$EXEC_BIN' y no el lanzador $LAUNCHER"
+      fail "the installed .desktop Exec is '$EXEC_BIN', not the launcher $LAUNCHER"
     fi
     MISSING=""
     for key in '^\[Desktop Entry\]' '^Type=Application$' '^Name=.\+' '^Icon=.\+' '^Categories=.\+'; do
       grep -q "$key" "$DESKTOP" || MISSING="$MISSING $key"
     done
     if [[ -z "$MISSING" ]]; then
-      pass "el .desktop instalado tiene cabecera, Type, Name, Icon y Categories"
+      pass "the installed .desktop has a header, Type, Name, Icon, and Categories"
     else
-      fail "al .desktop instalado le faltan líneas:$MISSING"
+      fail "the installed .desktop is missing lines:$MISSING"
     fi
   fi
 
   if [[ -e "$FAKE_HOME/.local" ]]; then
-    fail "install.sh --prefix escribió en ~/.local del HOME de prueba"
+    fail "install.sh --prefix wrote to ~/.local in the test HOME"
   else
-    pass "install.sh --prefix no toca ~/.local"
+    pass "install.sh --prefix does not touch ~/.local"
   fi
   if grep -rqs 'local/bin' "$FAKE_HOME/.bashrc" "$FAKE_HOME/.profile"; then
-    fail "install.sh --prefix modificó los ficheros de arranque del shell"
+    fail "install.sh --prefix changed shell startup files"
   else
-    pass "install.sh --prefix no toca el PATH del usuario"
+    pass "install.sh --prefix does not touch the user's PATH"
   fi
 fi
 
@@ -196,34 +197,34 @@ if [[ -x "$REPO_ROOT/deploy/uninstall.sh" ]]; then
   UNINSTALL_CODE=$?
   set -e
   if [[ $UNINSTALL_CODE -eq 0 && ! -e "$LAUNCHER" && ! -e "$DESKTOP" ]]; then
-    pass "uninstall.sh --prefix deshace la instalación"
+    pass "uninstall.sh --prefix reverses the installation"
   else
-    fail "uninstall.sh --prefix (código $UNINSTALL_CODE) deja el prefijo a medias: $UNINSTALL_OUT"
+    fail "uninstall.sh --prefix (code $UNINSTALL_CODE) leaves a partial prefix: $UNINSTALL_OUT"
   fi
 else
-  fail "deploy/uninstall.sh no existe o no es ejecutable"
+  fail "deploy/uninstall.sh does not exist or is not executable"
 fi
 
 echo
-echo "README — el uso documentado es el que imprime el binario"
+echo "README — documented usage matches the binary"
 README="$REPO_ROOT/README.md"
 if [[ ! -f "$README" ]]; then
-  fail "no hay README.md"
+  fail "README.md does not exist"
 else
   README_OK=1
   for line in "${USAGE_LINES[@]}"; do
     if ! grep -qF -- "$line" "$README"; then
-      fail "el README no documenta la línea de uso: $line"
+      fail "the README does not document this usage line: $line"
       README_OK=0
     fi
   done
-  [[ $README_OK -eq 1 ]] && pass "el README reproduce el uso del CLI" || true
+  [[ $README_OK -eq 1 ]] && pass "the README reproduces the CLI usage" || true
 fi
 
 echo
 if [[ $FAILURES -eq 0 ]]; then
-  printf '\033[32mhumo en verde\033[0m: TS-44 y la instalación real pasan\n'
+  printf '\033[32mgreen smoke\033[0m: TS-44 and the real installation pass\n'
   exit 0
 fi
-printf '\033[31m%d comprobación(es) en rojo\033[0m\n' "$FAILURES" >&2
+printf '\033[31m%d failed check(s)\033[0m\n' "$FAILURES" >&2
 exit 1

@@ -3,7 +3,7 @@ import type { Scope } from "@/ipc/types";
 import { createReviewStore, persistableReview } from "@/state/review";
 import { sampleFiles } from "../helpers/fixtures";
 
-const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/reviewv4" };
+const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/local-reviewer" };
 
 function opened(): ReturnType<typeof createReviewStore> {
   const store = createReviewStore();

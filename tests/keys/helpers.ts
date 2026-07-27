@@ -48,9 +48,9 @@ export function press(
 }
 
 const PANEL_TITLES: Record<Panel, RegExp> = {
-  tree: /^1 ÁRBOL/,
+  tree: /^1 FILES/,
   diff: /^2 DIFF/,
-  comments: /^3 COMENTARIOS/,
+  comments: /^3 COMMENTS/,
 };
 
 export function panel(name: Panel): HTMLElement {

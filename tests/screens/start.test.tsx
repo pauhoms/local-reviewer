@@ -11,7 +11,7 @@ import App from "@/App";
 
 const HOME = "/home/dev";
 const REPO = "/home/dev/prx/iprox-server";
-const OTHER_REPO = "/home/dev/reviewv4";
+const OTHER_REPO = "/home/dev/local-reviewer";
 
 const COMMITS: CommitInfo[] = [
   {
@@ -40,7 +40,7 @@ const COMMITS: CommitInfo[] = [
 const DIRS: Record<string, DirEntryInfo[]> = {
   [HOME]: [
     { name: "prx", path: "/home/dev/prx", isGitRepo: false },
-    { name: "reviewv4", path: OTHER_REPO, isGitRepo: true },
+    { name: "local-reviewer", path: OTHER_REPO, isGitRepo: true },
     { name: "notas", path: "/home/dev/notas", isGitRepo: false },
   ],
   "/home/dev/prx": [{ name: "iprox-server", path: REPO, isGitRepo: true }],
@@ -49,12 +49,12 @@ const DIRS: Record<string, DirEntryInfo[]> = {
   "/home/dev/notas": [],
 };
 
-const RECENTS = /Recientes/;
-const BROWSER = /Navegar/;
-const SCOPE = /¿Qué revisamos\?/;
-const TREE_PANEL = /1 ÁRBOL/;
+const RECENTS = /Recent/;
+const BROWSER = /Browse/;
+const SCOPE = /Review scope/;
+const TREE_PANEL = /1 FILES/;
 const DIFF_PANEL = /2 DIFF/;
-const COMMENTS_PANEL = /3 COMENTARIOS/;
+const COMMENTS_PANEL = /3 COMMENTS/;
 
 function region(name: RegExp): HTMLElement {
   return screen.getByRole("region", { name });
@@ -90,7 +90,7 @@ function activePanels(): string[] {
 }
 
 function modeList(): HTMLElement {
-  return within(region(SCOPE)).getByRole("listbox", { name: /Alcance/i });
+  return within(region(SCOPE)).getByRole("listbox", { name: /Scope/i });
 }
 
 function commitList(): HTMLElement {
@@ -143,7 +143,7 @@ describe("start screen", () => {
     expect(browser).toHaveTextContent(HOME);
     expect(textsIn(browser)).toEqual([
       expect.stringContaining("prx"),
-      expect.stringContaining("reviewv4"),
+      expect.stringContaining("local-reviewer"),
       expect.stringContaining("notas"),
     ]);
     expect(optionsIn(browser).map((entry) => entry.getAttribute("data-git-repo"))).toEqual([
@@ -167,7 +167,7 @@ describe("start screen", () => {
     await waitFor(() => expect(optionsIn(region(RECENTS))).toHaveLength(2));
 
     await user.keyboard("1");
-    expect(activePanels()).toEqual([expect.stringContaining("Recientes")]);
+    expect(activePanels()).toEqual([expect.stringContaining("Recent")]);
     expect(cursorIn(region(RECENTS))).toContain(REPO);
 
     await user.keyboard("j");
@@ -178,10 +178,10 @@ describe("start screen", () => {
     expect(cursorIn(region(RECENTS))).toContain(REPO);
 
     await user.keyboard("2");
-    expect(activePanels()).toEqual([expect.stringContaining("Navegar")]);
+    expect(activePanels()).toEqual([expect.stringContaining("Browse")]);
 
     await user.keyboard("j");
-    expect(cursorIn(region(BROWSER))).toContain("reviewv4");
+    expect(cursorIn(region(BROWSER))).toContain("local-reviewer");
     expect(cursorIn(region(RECENTS))).toContain(REPO);
   });
 
@@ -231,7 +231,7 @@ describe("start screen", () => {
 
     await user.keyboard("2");
     await user.keyboard("j");
-    expect(cursorIn(region(BROWSER))).toContain("reviewv4");
+    expect(cursorIn(region(BROWSER))).toContain("local-reviewer");
 
     await user.keyboard("{Enter}");
 
@@ -281,11 +281,11 @@ describe("start screen", () => {
 
     await user.keyboard("3");
     expect(textsIn(modeList())).toEqual([
-      expect.stringContaining("Cambios sin commitear"),
-      expect.stringContaining("Un commit"),
-      expect.stringContaining("Rango de commits"),
+      expect.stringContaining("Uncommitted changes"),
+      expect.stringContaining("Single commit"),
+      expect.stringContaining("Commit range"),
     ]);
-    expect(cursorIn(modeList())).toContain("Cambios sin commitear");
+    expect(cursorIn(modeList())).toContain("Uncommitted changes");
 
     await user.keyboard("{Enter}");
 
@@ -314,7 +314,7 @@ describe("start screen", () => {
 
     await user.keyboard("3");
     await user.keyboard("j");
-    expect(cursorIn(modeList())).toContain("Un commit");
+    expect(cursorIn(modeList())).toContain("Single commit");
 
     await user.keyboard("{Enter}");
     await waitFor(() => expect(optionsIn(commitList())).toHaveLength(3));
@@ -356,7 +356,7 @@ describe("start screen", () => {
 
     await user.keyboard("3");
     await user.keyboard("jj");
-    expect(cursorIn(modeList())).toContain("Rango de commits");
+    expect(cursorIn(modeList())).toContain("Commit range");
 
     await user.keyboard("{Enter}");
     await waitFor(() => expect(optionsIn(commitList())).toHaveLength(3));
@@ -397,9 +397,9 @@ describe("start screen", () => {
 
     render(<App />);
 
-    expect(await screen.findByText(/No hay cambios sin commitear/i)).toBeInTheDocument();
-    expect(screen.getByText(/working tree limpio/i)).toBeInTheDocument();
-    const hint = screen.getByText(/elegir otro alcance/i);
+    expect(await screen.findByText(/There are no uncommitted changes/i)).toBeInTheDocument();
+    expect(screen.getByText(/working tree is clean/i)).toBeInTheDocument();
+    const hint = screen.getByText(/choose another scope/i);
     expect(hint).toHaveTextContent(/Enter/);
     expect(screen.queryByRole("region", { name: DIFF_PANEL })).toBeNull();
     expect(screen.queryByRole("region", { name: RECENTS })).toBeNull();
@@ -416,17 +416,17 @@ describe("start screen", () => {
 
     const user = userEvent.setup();
     render(<App />);
-    await screen.findByText(/No hay cambios sin commitear/i);
+    await screen.findByText(/There are no uncommitted changes/i);
 
     await user.keyboard("{Enter}");
 
     const scope = await screen.findByRole("region", { name: SCOPE });
     expect(scope.getAttribute("data-repo")).toBe(REPO);
     await waitFor(() => expect(optionsIn(commitList())).toHaveLength(3));
-    expect(screen.queryByText(/No hay cambios sin commitear/i)).toBeNull();
+    expect(screen.queryByText(/There are no uncommitted changes/i)).toBeNull();
 
     await user.keyboard("3");
-    expect(cursorIn(modeList())).toContain("Cambios sin commitear");
+    expect(cursorIn(modeList())).toContain("Uncommitted changes");
     await user.keyboard("j");
     await user.keyboard("{Enter}");
     expect(cursorIn(commitList())).toContain("a1b2c3d");

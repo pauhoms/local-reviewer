@@ -1,6 +1,6 @@
 mod helpers;
 use helpers::git_fixture::TempRepo;
-use reviewv4_lib::git::{diff::diff_for_scope, Scope};
+use local_reviewer_lib::git::{diff::diff_for_scope, Scope};
 use std::os::unix::fs::symlink;
 
 #[test]

@@ -8,7 +8,7 @@ function repoRoot(): string {
   let current = process.cwd();
   while (!fs.existsSync(path.join(current, "package.json"))) {
     const parent = path.dirname(current);
-    if (parent === current) throw new Error(`no encuentro la raíz del repo desde ${process.cwd()}`);
+    if (parent === current) throw new Error(`could not find the repository root from ${process.cwd()}`);
     current = parent;
   }
   return current;
@@ -32,7 +32,7 @@ export interface Sandbox {
 }
 
 export function sandbox(): Sandbox {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "reviewv4-deploy-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "local-reviewer-deploy-"));
   const home = path.join(root, "home");
   fs.mkdirSync(home);
   for (const rc of RC_FILES) {

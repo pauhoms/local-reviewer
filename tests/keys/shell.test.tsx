@@ -9,9 +9,9 @@ import { reviewStore } from "@/state/review";
 type PanelName = "tree" | "diff" | "comments";
 
 const TITLES: Record<PanelName, RegExp> = {
-  tree: /^1 ÁRBOL/,
+  tree: /^1 FILES/,
   diff: /^2 DIFF/,
-  comments: /^3 COMENTARIOS/,
+  comments: /^3 COMMENTS/,
 };
 
 function panel(name: PanelName): HTMLElement {
@@ -60,7 +60,7 @@ function seedComments(): void {
 
 async function renderShell(): Promise<void> {
   render(<App />);
-  await screen.findByRole("region", { name: /^1 ÁRBOL/ });
+  await screen.findByRole("region", { name: /^1 FILES/ });
   seedComments();
 }
 

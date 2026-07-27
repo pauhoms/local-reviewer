@@ -17,7 +17,7 @@ import App from "@/App";
 import { configureIpc } from "../helpers/ipc-mock";
 import { reviewStore } from "@/state/review";
 
-const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/reviewv4" };
+const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/local-reviewer" };
 
 const SPLIT = "{Control>}w{/Control}v";
 
@@ -50,7 +50,7 @@ function help(): string {
 async function boot(): Promise<UserEvent> {
   configureIpc({ startup: { scope: SCOPE, home: "/home/dev" }, diff: [FILE], blobs: {} });
   render(<App />);
-  await screen.findByRole("region", { name: /^1 ÁRBOL/ });
+  await screen.findByRole("region", { name: /^1 FILES/ });
   const user = userEvent.setup();
   await user.keyboard("2");
   await act(async () => undefined);

@@ -1,6 +1,6 @@
 /**
- * TS-42 — the toolbar: «Export Review» writes the Markdown and shows the
- * absolute path the backend answers; «Copy Path» leaves that very path in the
+ * TS-42 — the toolbar: "Export Review" writes the Markdown and shows the
+ * absolute path the backend answers; "Copy Path" leaves that very path in the
  * clipboard. Everything goes through `<App />`; the only thing stubbed is the
  * boundary the repo always stubs, `src/ipc/client.ts`.
  *
@@ -11,8 +11,8 @@
  *             names the phase spells out, mockup included.
  *   shortcut  each button carries `data-shortcut` with the key id of its
  *             keymap row (`e`, `y`, `Ctrl+e`, `g e`, …). The tests press
- *             whatever it says: the phase asks for shortcuts «coherentes con
- *             la fase 2», not for two letters chosen here.
+ *             whatever it says: the phase asks for shortcuts "consistent with
+ *             phase 2", not for two letters chosen here.
  *   path      `[data-export-path]` holds the absolute path of the last export,
  *             and is absent until something has been exported.
  *
@@ -52,7 +52,7 @@ import { clipboardText, configureIpc, copyToClipboard, exportReview } from "../h
 import { reviewStore } from "@/state/review";
 import type { ReviewComment } from "@/state/review";
 
-const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/reviewv4" };
+const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/local-reviewer" };
 
 const PHP_PATH = "src/UserService.php";
 const ORDER_PATH = "src/order/Order.ts";
@@ -100,7 +100,7 @@ const FILES: FileDiff[] = [
     add(36, "      throw new BadRequest('email');"),
     add(37, "    }"),
   ]),
-  file(ROOT_PATH, [context(33, 33, "# reviewv4"), add(34, "Un revisor de escritorio.")]),
+  file(ROOT_PATH, [context(33, 33, "# local-reviewer"), add(34, "Un revisor de escritorio.")]),
   file(ORDER_PATH, [context(33, 33, "export interface Order {"), add(34, "  id: string;")]),
 ];
 
@@ -145,7 +145,7 @@ function keystrokes(shortcut: string): string {
       const typed = key.length === 1 ? key : `{${key}}`;
       return parts.slice(0, -1).reduceRight((inner, name) => {
         const modifier = MODIFIERS[name];
-        if (!modifier) throw new Error(`atajo con modificador desconocido: ${keyId}`);
+        if (!modifier) throw new Error(`unknown shortcut modifier: ${keyId}`);
         return `{${modifier}>}${inner}{/${modifier}}`;
       }, typed);
     })
@@ -155,7 +155,7 @@ function keystrokes(shortcut: string): string {
 function shortcutOf(button: HTMLElement): string {
   const raw = (button.getAttribute("data-shortcut") ?? "").trim();
   if (raw === "") {
-    throw new Error(`el botón «${button.textContent ?? ""}» no anuncia ningún atajo de teclado`);
+    throw new Error(`button "${button.textContent ?? ""}" does not announce a keyboard shortcut`);
   }
   return raw;
 }
@@ -165,7 +165,7 @@ function shortcutOf(button: HTMLElement): string {
 async function boot(exportPaths: string[] = [FIRST_EXPORT]): Promise<UserEvent> {
   configureIpc({ startup: { scope: SCOPE, home: "/home/dev" }, diff: FILES, exportPaths });
   render(<App />);
-  await screen.findByRole("region", { name: /^1 ÁRBOL/ });
+  await screen.findByRole("region", { name: /^1 FILES/ });
   const user = userEvent.setup();
   await act(async () => undefined);
   return user;
@@ -274,11 +274,11 @@ describe("Export Review writes the Markdown and shows where it landed", () => {
   it("TS-42: an export that fails says so and shows no path at all", async () => {
     const user = await boot();
     seed(...COMMENTS);
-    exportReview.mockRejectedValueOnce(new Error("permiso denegado"));
+    exportReview.mockRejectedValueOnce(new Error("permission denied"));
 
     await exportOnce(user);
 
-    await waitFor(() => expect(document.body).toHaveTextContent(/no se pudo/i));
+    await waitFor(() => expect(document.body).toHaveTextContent(/could not export/i));
     expect(shownPath()).toBeNull();
     await user.click(copyButton());
     expect(clipboardText()).toBeNull();

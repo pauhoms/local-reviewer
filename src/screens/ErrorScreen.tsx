@@ -20,7 +20,7 @@ export default function ErrorScreen({ message, onBack }: ErrorScreenProps): JSX.
     <div className="app app-message">
       <p role="alert">{message}</p>
       <p className="empty-hint">
-        <kbd>Enter</kbd> volver a elegir el alcance
+        <kbd>Enter</kbd> choose another scope
       </p>
     </div>
   );

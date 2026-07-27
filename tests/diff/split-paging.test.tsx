@@ -20,7 +20,7 @@ import App from "@/App";
 import { configureIpc } from "../helpers/ipc-mock";
 import { reviewStore } from "@/state/review";
 
-const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/reviewv4" };
+const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/local-reviewer" };
 const PATH = "src/many.ts";
 
 const SPLIT = "{Control>}w{/Control}v";
@@ -104,15 +104,15 @@ function diffPanel(): HTMLElement {
 
 function viewport(): HTMLElement {
   const node = diffPanel().querySelector<HTMLElement>("[data-diff-viewport]");
-  if (!node) throw new Error("el panel 2 no expone ningún [data-diff-viewport]");
+  if (!node) throw new Error("panel 2 does not expose [data-diff-viewport]");
   return node;
 }
 
-/** The item the cursor is on, as the heading of the panel counts them: `fila N de M`. */
+/** The item the cursor is on, as counted by the panel heading: `line N of M`. */
 function cursorItem(): number {
   const text = diffPanel().querySelector("[class~='diff-position']")?.textContent ?? "";
-  const match = /fila\s+(\d+)\s+de\s+(\d+)/i.exec(text);
-  if (!match) throw new Error(`la cabecera del panel 2 no dice en qué fila está: «${text}»`);
+  const match = /row\s+(\d+)\s+of\s+(\d+)/i.exec(text);
+  if (!match) throw new Error(`the panel 2 header does not say which row it is on: "${text}"`);
   return Number(match[1]);
 }
 
@@ -132,7 +132,7 @@ function offsetOf(list: HTMLElement): number {
 function bandOf(row: HTMLElement): { top: number; bottom: number } {
   const rows = rowNodes();
   const at = rows.indexOf(row);
-  if (at < 0) throw new Error("la fila no está montada");
+  if (at < 0) throw new Error("the row is not mounted");
   const list = row.closest("ul,ol");
   const shift = list instanceof HTMLElement ? offsetOf(list) : 0;
   const top = shift + at * ROW_HEIGHT;
@@ -148,7 +148,7 @@ function onScreen(row: HTMLElement): boolean {
 function cursorRow(): HTMLElement {
   const marked = diffPanel().querySelector<HTMLElement>("[data-split-row] [data-cursor='true']");
   const row = marked?.closest<HTMLElement>("[data-split-row]");
-  if (!row) throw new Error("ninguna fila del diff partido lleva el cursor");
+  if (!row) throw new Error("no split-diff row carries the cursor");
   return row;
 }
 
@@ -174,7 +174,7 @@ function itemsOnScreen(): number {
 async function boot(file: FileDiff): Promise<UserEvent> {
   configureIpc({ startup: { scope: SCOPE, home: "/home/dev" }, diff: [file], blobs: {} });
   render(<App />);
-  await screen.findByRole("region", { name: /^1 ÁRBOL/ });
+  await screen.findByRole("region", { name: /^1 FILES/ });
   const user = userEvent.setup();
   await user.keyboard("2");
   await act(async () => undefined);

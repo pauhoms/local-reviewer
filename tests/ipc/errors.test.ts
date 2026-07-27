@@ -3,7 +3,7 @@ import { errorMessage } from "@/ipc/errors";
 
 describe("what the user is told when a command fails", () => {
   it("passes through the typed message the backend sends as a string", () => {
-    expect(errorMessage("/tmp no es un repositorio git")).toBe("/tmp no es un repositorio git");
+    expect(errorMessage("/tmp is not a Git repository")).toBe("/tmp is not a Git repository");
   });
 
   it("takes the message out of an Error", () => {

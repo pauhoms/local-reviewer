@@ -19,7 +19,7 @@ import App from "@/App";
 import { clipboardText, configureIpc, copyToClipboard, exportReview } from "../helpers/ipc-mock";
 import { reviewStore } from "@/state/review";
 
-const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/reviewv4" };
+const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/local-reviewer" };
 const FIRST_EXPORT = "/home/dev/.codex/reviews/review-2026-07-26.md";
 
 const FILES: FileDiff[] = [
@@ -48,7 +48,7 @@ const FILES: FileDiff[] = [
 async function boot(): Promise<UserEvent> {
   configureIpc({ startup: { scope: SCOPE, home: "/home/dev" }, diff: FILES });
   render(<App />);
-  await screen.findByRole("region", { name: /^1 ÁRBOL/ });
+  await screen.findByRole("region", { name: /^1 FILES/ });
   const user = userEvent.setup();
   await act(async () => undefined);
   return user;
@@ -61,7 +61,7 @@ async function exportOnce(user: UserEvent): Promise<void> {
 }
 
 function copySign(): HTMLElement | null {
-  return screen.queryByText("copiada ✓");
+  return screen.queryByText("copied ✓");
 }
 
 beforeEach(() => {
@@ -107,10 +107,10 @@ describe("what the toolbar says once the path is in the clipboard", () => {
   it("takes back the failure of a copy as soon as one works", async () => {
     const user = await boot();
     await exportOnce(user);
-    copyToClipboard.mockRejectedValueOnce(new Error("sin portapapeles"));
+    copyToClipboard.mockRejectedValueOnce(new Error("clipboard unavailable"));
 
     await user.keyboard(COPY_PATH_KEY);
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/no se pudo copiar/i));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/could not copy/i));
 
     await user.keyboard(COPY_PATH_KEY);
 
@@ -122,11 +122,11 @@ describe("what the toolbar says once the path is in the clipboard", () => {
     const user = await boot();
     await exportOnce(user);
     await waitFor(() => expect(screen.getByText(FIRST_EXPORT)).toBeInTheDocument());
-    exportReview.mockRejectedValueOnce(new Error("disco lleno"));
+    exportReview.mockRejectedValueOnce(new Error("disk full"));
 
     await exportOnce(user);
 
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/disco lleno/));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/disk full/));
     expect(screen.getByRole("alert")).toHaveTextContent(FIRST_EXPORT);
     expect(screen.getByText(FIRST_EXPORT)).toBeInTheDocument();
 

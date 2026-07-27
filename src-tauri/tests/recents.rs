@@ -1,5 +1,5 @@
 //! TS-15 — the recent repositories list: written atomically under
-//! `$REVIEWV4_REVIEWS_DIR/.state/`, read back by a *different* process, capped
+//! `$LOCAL_REVIEWER_REVIEWS_DIR/.state/`, read back by a *different* process, capped
 //! and free of duplicates. Nothing here may touch `~/.codex/reviews/`.
 
 use std::fs;
@@ -7,11 +7,11 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Mutex;
 
-use reviewv4_lib::review::recents::{list, record, MAX_RECENTS};
+use local_reviewer_lib::review::recents::{list, record, MAX_RECENTS};
 use tempfile::TempDir;
 
-const REVIEWS_DIR_ENV: &str = "REVIEWV4_REVIEWS_DIR";
-const EXPECTED_ENV: &str = "REVIEWV4_TEST_EXPECTED_RECENTS";
+const REVIEWS_DIR_ENV: &str = "LOCAL_REVIEWER_REVIEWS_DIR";
+const EXPECTED_ENV: &str = "LOCAL_REVIEWER_TEST_EXPECTED_RECENTS";
 
 /// The reviews directory travels in the environment, which is process-wide:
 /// tests that point it somewhere else must not overlap.

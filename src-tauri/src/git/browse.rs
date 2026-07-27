@@ -102,7 +102,7 @@ mod tests {
         ));
         assert_eq!(
             GitError::NoHome.to_string(),
-            "no se pudo determinar tu directorio personal"
+            "could not determine your home directory"
         );
     }
 

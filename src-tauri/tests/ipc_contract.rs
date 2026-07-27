@@ -2,7 +2,7 @@
 //! `src/ipc/types.ts` declares. `commands.rs` lives behind the `app` feature,
 //! so without these round-trips nothing would notice the contract drifting.
 
-use reviewv4_lib::git::{
+use local_reviewer_lib::git::{
     CommitInfo, DirEntryInfo, FileDiff, FileStatus, Hunk, Line, LineKind, Scope, Side,
 };
 use serde::de::DeserializeOwned;

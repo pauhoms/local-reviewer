@@ -12,7 +12,7 @@ import App from "@/App";
 import { configureIpc } from "../helpers/ipc-mock";
 import { reviewStore } from "@/state/review";
 
-const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/reviewv4" };
+const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/local-reviewer" };
 
 /**
  * Many small hunks, which is what a real review looks like and what the
@@ -49,7 +49,7 @@ function manyHunks(path: string, hunks: number, linesPerHunk: number): FileDiff 
 async function boot(file: FileDiff): Promise<UserEvent> {
   configureIpc({ startup: { scope: SCOPE, home: "/home/dev" }, diff: [file], blobs: {} });
   render(<App />);
-  await screen.findByRole("region", { name: /^1 ÁRBOL/ });
+  await screen.findByRole("region", { name: /^1 FILES/ });
   const user = userEvent.setup();
   await user.keyboard("2");
   await act(async () => undefined);
@@ -58,17 +58,17 @@ async function boot(file: FileDiff): Promise<UserEvent> {
 
 function viewport(): HTMLElement {
   const node = panel("diff").querySelector("[data-diff-viewport]");
-  if (!(node instanceof HTMLElement)) throw new Error("no hay [data-diff-viewport]");
+  if (!(node instanceof HTMLElement)) throw new Error("there is no [data-diff-viewport]");
   return node;
 }
 
 /** Where the cursor really sits, in pixels, regardless of what the panel claims. */
 function cursorBand(): { top: number; bottom: number } {
   const node = panel("diff").querySelector("[data-cursor='true']");
-  if (!(node instanceof HTMLElement)) throw new Error("no hay fila con data-cursor");
+  if (!(node instanceof HTMLElement)) throw new Error("there is no row with data-cursor");
   const rows = Array.from(panel("diff").querySelectorAll("[data-line-index],[data-hunk-header]"));
   const row = rows.indexOf(node);
-  if (row < 0) throw new Error("la fila del cursor no está montada");
+  if (row < 0) throw new Error("the cursor row is not mounted");
   const list = node.closest("ul,ol");
   const shift = list instanceof HTMLElement ? offsetOf(list) : 0;
   const top = shift + row * ROW_HEIGHT;
@@ -157,7 +157,7 @@ describe("the window the panel publishes", () => {
     const view = viewport();
     const last = Number(view.getAttribute("data-last-visible"));
     const node = panel("diff").querySelector(`[data-line-index='${last}']`);
-    expect(node, `la línea ${last} dice estar visible pero no está montada`).not.toBeNull();
+    expect(node, `line ${last} claims to be visible but is not mounted`).not.toBeNull();
 
     const rows = Array.from(panel("diff").querySelectorAll("[data-line-index],[data-hunk-header]"));
     const list = node instanceof HTMLElement ? node.closest("ul,ol") : null;
@@ -166,7 +166,7 @@ describe("the window the panel publishes", () => {
 
     expect(
       top + ROW_HEIGHT <= view.scrollTop + view.clientHeight,
-      `data-last-visible dice ${last}, pero esa línea acaba en ${top + ROW_HEIGHT}px y la ventana en ${view.scrollTop + view.clientHeight}px`,
+      `data-last-visible says ${last}, but that line ends at ${top + ROW_HEIGHT}px and the viewport at ${view.scrollTop + view.clientHeight}px`,
     ).toBe(true);
   });
 });

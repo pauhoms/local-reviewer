@@ -127,9 +127,10 @@ mod tests {
     #[test]
     fn the_key_carries_the_repository_name_so_a_human_can_find_it() {
         assert!(
-            scope_key(&worktree("/home/dev/reviewv4")).starts_with("worktree-reviewv4-"),
+            scope_key(&worktree("/home/dev/local-reviewer"))
+                .starts_with("worktree-local-reviewer-"),
             "got {}",
-            scope_key(&worktree("/home/dev/reviewv4"))
+            scope_key(&worktree("/home/dev/local-reviewer"))
         );
     }
 

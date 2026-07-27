@@ -1,7 +1,7 @@
 mod helpers;
 
-use reviewv4_lib::git::parse::parse_unified_diff;
-use reviewv4_lib::git::{FileDiff, FileStatus, LineKind};
+use local_reviewer_lib::git::parse::parse_unified_diff;
+use local_reviewer_lib::git::{FileDiff, FileStatus, LineKind};
 
 /// Four files in one `git diff` payload: a two-hunk modification, an added
 /// file, a deleted file and a rename that also changed content.

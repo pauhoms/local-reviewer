@@ -29,16 +29,16 @@ export default function ResumeReview({
   );
 
   const comments =
-    commentCount === 1 ? "1 comentario guardado" : `${commentCount} comentarios guardados`;
+    commentCount === 1 ? "1 saved comment" : `${commentCount} saved comments`;
 
   return (
     <div className="app app-message resume-review">
-      <h1>Revisión sin terminar</h1>
-      <p role="status">¿Quieres retomar la revisión de este alcance?</p>
+      <h1>Unfinished review</h1>
+      <p role="status">Resume the review for this scope?</p>
       <p className="resume-scope">{scopeLabel(scope)}</p>
       <p className="resume-count">{comments}</p>
       <p className="empty-hint">
-        <kbd>Enter</kbd> continuar donde lo dejaste · <kbd>Esc</kbd> empezar de cero
+        <kbd>Enter</kbd> continue where you left off · <kbd>Esc</kbd> start over
       </p>
     </div>
   );

@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "AI Code Reviewer",
+  "productName": "Local Reviewer",
   "version": "0.1.0",
-  "identifier": "net.proximasystems.reviewv4",
+  "identifier": "net.proximasystems.localreviewer",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "AI Code Reviewer",
+        "title": "Local Reviewer",
         "width": 1600,
         "height": 1000,
         "resizable": true,

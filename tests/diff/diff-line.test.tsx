@@ -27,7 +27,7 @@ function show(
 
 function part(row: HTMLElement, attribute: string): HTMLElement {
   const node = row.querySelector<HTMLElement>(`[${attribute}]`);
-  if (!node) throw new Error(`la línea no tiene [${attribute}]`);
+  if (!node) throw new Error(`the line has no [${attribute}]`);
   return node;
 }
 

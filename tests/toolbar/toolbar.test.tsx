@@ -108,21 +108,21 @@ describe("Toolbar", () => {
   it("says nothing about the clipboard before anything has been copied", () => {
     paint({ path: PATH });
 
-    expect(screen.queryByText(/copiada/i)).toBeNull();
+    expect(screen.queryByText(/copied/i)).toBeNull();
   });
 
   it("says the path is in the clipboard once it has been copied", () => {
     paint({ path: PATH, copied: true });
 
-    expect(screen.getByText("copiada ✓")).toBeInTheDocument();
+    expect(screen.getByText("copied ✓")).toBeInTheDocument();
     expect(copyButton()).toHaveAccessibleName(`Copy Path ${COPY_PATH_KEY}`);
   });
 
   it("says out loud what went wrong", () => {
-    paint({ error: "No se pudo exportar la revisión: permiso denegado" });
+    paint({ error: "Could not export the review: permission denied" });
 
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "No se pudo exportar la revisión: permiso denegado",
+      "Could not export the review: permission denied",
     );
   });
 

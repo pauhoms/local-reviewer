@@ -1,10 +1,10 @@
 [Desktop Entry]
 Type=Application
-Name=AI Code Reviewer
-GenericName=Revisor de código
-Comment=Revisa a mano el código que escribió la IA, antes del commit
+Name=Local Reviewer
+GenericName=Code reviewer
+Comment=Review local Git changes before commit
 Exec="@PREFIX@/bin/reviewer"
 Icon=reviewer
 Terminal=false
 Categories=Development;RevisionControl;
-Keywords=código;revisión;diff;git;
+Keywords=code;review;diff;git;

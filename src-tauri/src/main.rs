@@ -3,13 +3,13 @@
 fn main() {
     #[cfg(feature = "app")]
     {
-        use reviewv4_lib::cli::{self, Startup};
+        use local_reviewer_lib::cli::{self, Startup};
 
         match cli::from_env() {
             Ok(Startup::Help(usage)) => println!("{usage}"),
             Ok(startup) => {
-                if let Err(e) = reviewv4_lib::run(startup) {
-                    eprintln!("no se pudo arrancar AI Code Reviewer: {e}");
+                if let Err(e) = local_reviewer_lib::run(startup) {
+                    eprintln!("could not start Local Reviewer: {e}");
                     std::process::exit(1);
                 }
             }

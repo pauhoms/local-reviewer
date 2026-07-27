@@ -9,10 +9,10 @@ use std::os::unix::ffi::OsStrExt;
 use std::os::unix::fs::symlink;
 
 use helpers::git_fixture::{canonical, temp_dir_outside_home, TempRepo};
-use reviewv4_lib::git::blob::read_blob;
-use reviewv4_lib::git::diff::diff_for_scope;
-use reviewv4_lib::git::parse::parse_unified_diff;
-use reviewv4_lib::git::{FileDiff, FileStatus, GitError, LineKind, Scope, Side};
+use local_reviewer_lib::git::blob::read_blob;
+use local_reviewer_lib::git::diff::diff_for_scope;
+use local_reviewer_lib::git::parse::parse_unified_diff;
+use local_reviewer_lib::git::{FileDiff, FileStatus, GitError, LineKind, Scope, Side};
 
 fn shape(file: &FileDiff) -> Vec<(LineKind, Option<u32>, Option<u32>, String)> {
     file.hunks

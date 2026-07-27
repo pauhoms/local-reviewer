@@ -12,7 +12,7 @@ import { configureIpc } from "../helpers/ipc-mock";
 import { reviewStore } from "@/state/review";
 import type { ReviewComment } from "@/state/review";
 
-const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/reviewv4" };
+const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/local-reviewer" };
 
 function fileDiff(path: string, patch: Partial<FileDiff> = {}): FileDiff {
   return {
@@ -51,7 +51,7 @@ const ALL_ROWS = [
 async function renderTree(files: FileDiff[] = FILES): Promise<UserEvent> {
   configureIpc({ startup: { scope: SCOPE, home: "/home/dev" }, diff: files });
   render(<App />);
-  await screen.findByRole("region", { name: /^1 ÁRBOL/ });
+  await screen.findByRole("region", { name: /^1 FILES/ });
   return userEvent.setup();
 }
 
@@ -65,13 +65,13 @@ function rowPaths(): Array<string | null> {
 
 function rowAt(path: string): HTMLElement {
   const row = rows().find((candidate) => candidate.getAttribute("data-path") === path);
-  if (!row) throw new Error(`no hay fila para ${path}; hay ${rowPaths().join(", ")}`);
+  if (!row) throw new Error(`there is no row for ${path}; found ${rowPaths().join(", ")}`);
   return row;
 }
 
 function cursorPath(): string | null {
   const row = rows().find((candidate) => candidate.getAttribute("aria-selected") === "true");
-  if (!row) throw new Error("ninguna fila lleva el cursor (aria-selected)");
+  if (!row) throw new Error("no row carries the cursor (aria-selected)");
   return row.getAttribute("data-path");
 }
 
@@ -281,7 +281,7 @@ describe("the tree moves with j and k", () => {
   it("keeps the row reached with the keyboard inside the tree scroll viewport", async () => {
     const user = await renderTree();
     const list = panel("tree").querySelector<HTMLElement>(".tree-list");
-    if (!list) throw new Error("el árbol no tiene lista");
+    if (!list) throw new Error("the tree has no list");
 
     vi.spyOn(list, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 300, 48));
     vi.spyOn(rowAt("src/domain"), "getBoundingClientRect").mockReturnValue(

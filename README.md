@@ -1,190 +1,173 @@
-# AI Code Reviewer
+# Local Reviewer
 
-Aplicación de escritorio local para revisar a mano el código que escribió la IA,
-antes del commit. Tres paneles fijos —árbol · diff · comentarios— manejados
-enteramente con el teclado, con la memoria muscular de Vim.
+A local, keyboard-first desktop application for reviewing Git changes before
+they are committed. Browse the changed-file tree, read a unified or split diff,
+attach comments to exact lines, and export the review as Markdown without
+modifying the repository.
 
-## La filosofía
+Local Reviewer is designed for the loop where a coding agent writes code and a
+human validates it. The application is deliberately read-only: it never stages,
+commits, checks out, or edits the code under review.
 
-La IA escribe, el humano revisa. El agente produce código más rápido de lo que
-nadie lo lee, y el commit sin leer es donde se cuela lo que después cuesta caro.
-Esta herramienta existe para que leerlo sea barato: abrir el repo, recorrer el
-diff sin soltar el teclado, anotar lo que no convence y devolverle a la IA una
-lista de correcciones concreta, con fichero y líneas.
+## Screenshot
 
-Por eso la herramienta **solo lee**: nunca commitea, nunca toca el índice de
-git, nunca modifica el código revisado. No es un editor. Lo único que escribe
-son tus comentarios y el Markdown que exportas, y siempre en `~/.codex/reviews/`.
+![Local Reviewer showing the file tree, split diff, and review comments](docs/images/local-reviewer.png)
 
-## Instalación
+## Features
 
-Hace falta el binario de release construido:
+- Three fixed panels: changed files, diff, and comments.
+- Vim-style navigation with normal, visual, and insert modes.
+- Unified and side-by-side diffs with syntax highlighting.
+- Comments anchored to a file, side, and line range.
+- Automatic review persistence between sessions.
+- Markdown export that can be handed directly to Codex or another coding agent.
+- Worktree, single-commit, and commit-range review scopes.
+- Local-only operation with read-only Git commands.
 
-```
+Review state and exported Markdown are stored in `~/.codex/reviews/` by default.
+Set `LOCAL_REVIEWER_REVIEWS_DIR` to use another directory.
+
+## Installation
+
+Build the release binary and run the installer:
+
+```sh
 npm install
-npm run tauri build          # deja src-tauri/target/release/reviewv4
+npm run tauri build
 ./deploy/install.sh
 ```
 
-`deploy/install.sh` copia ese binario como `reviewer` y deja la entrada de
-escritorio junto a él:
+The installer copies the application into `~/.local`:
 
-```
-$ ./deploy/install.sh
-  ✓ binario     ~/.local/bin/reviewer
-  ✓ escritorio  ~/.local/share/applications/reviewer.desktop
-  ✓ icono       ~/.local/share/icons/hicolor/128x128/apps/reviewer.png
-  ✓ ~/.local/bin ya está en el PATH
+```text
+~/.local/bin/reviewer
+~/.local/share/applications/reviewer.desktop
+~/.local/share/icons/hicolor/128x128/apps/reviewer.png
 ```
 
-| Opción | Qué hace |
+| Option | Description |
 | --- | --- |
-| `--prefix <dir>` | instala bajo otro prefijo; por defecto `~/.local` |
-| `--dry-run` | dice lo que escribiría y no escribe nada |
-| `--help`, `-h` | muestra la ayuda del instalador |
+| `--prefix <dir>` | Install under another prefix instead of `~/.local`. |
+| `--dry-run` | Print the planned changes without writing anything. |
+| `--help`, `-h` | Show installer help. |
 
-Con un `--prefix` que no sea `~/.local`, el escritorio **no encontrará el
-icono** salvo que ese `share` esté en `XDG_DATA_DIRS`. La entrada se instala y
-se lanza igual; solo sale sin icono. Para que lo encuentre:
+When installing outside `~/.local`, the desktop launcher still works, but the
+icon may not be found unless the prefix is included in `XDG_DATA_DIRS`:
 
+```sh
+export XDG_DATA_DIRS="<prefix>/share:$XDG_DATA_DIRS"
 ```
-export XDG_DATA_DIRS="<dir>/share:$XDG_DATA_DIRS"
-```
 
-Si `~/.local/bin` no está en tu `PATH`, el instalador **avisa y no lo arregla
-por su cuenta**: no toca los ficheros de arranque de tu shell. Añádelo tú:
+If `~/.local/bin` is not in `PATH`, add it yourself:
 
-```
+```sh
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
-Para deshacerlo, `./deploy/uninstall.sh` (acepta el mismo `--prefix` y el mismo
-`--dry-run`). Borra el lanzador, la entrada de escritorio y el icono; nada más.
+Uninstall with `./deploy/uninstall.sh`. It supports the same `--prefix` and
+`--dry-run` options and removes only the launcher, desktop entry, and icon.
 
-## Uso
+## Usage
 
-```
+```text
 reviewer [<commit>|<a>..<b>]
-  sin argumentos   revisa los cambios sin commitear del repo actual
-  <commit>         revisa un commit concreto
-  <a>..<b>         revisa el acumulado de un rango de commits
-  --help, -h       muestra esta ayuda
-  (fuera de un repo git, abre la pantalla de selección)
+  no arguments    review uncommitted changes in the current repository
+  <commit>        review one commit
+  <a>..<b>        review the accumulated changes in a commit range
+  --help, -h      show this help
+  outside Git     open the repository picker
 ```
 
+```sh
+cd ~/my-repository
+reviewer
+reviewer HEAD
+reviewer main..HEAD
 ```
-cd ~/mi-repo
-reviewer                     # los cambios que la IA acaba de dejar sin commitear
-reviewer HEAD                # el último commit
-reviewer main..HEAD          # todo lo que trae la rama
-```
 
-Lanzado fuera de un repo git —o desde el menú del escritorio— abre la pantalla
-de selección: repos recientes, un explorador de directorios y el ámbito a
-revisar (cambios sin commitear, un commit o un rango).
+When launched outside a Git repository, Local Reviewer opens a keyboard-driven
+picker for recent repositories, directories, and review scopes.
 
-## Los tres paneles
+## Keyboard shortcuts
 
-`1` el árbol de ficheros, `2` el diff, `3` los comentarios. El panel activo es
-independiente del modo: cambiar de panel no mueve los cursores de los demás.
+### Global
 
-El diff se lee unificado o partido (`Ctrl+w v` / `Ctrl+w o`); en el partido,
-`h` y `l` cambian de columna. Se comenta marcando un rango en modo visual (`v`,
-`j`/`k` para extenderlo) y pulsando `c`: el comentario queda anclado a esas
-líneas y sobrevive a cerrar la aplicación.
-
-## Atajos
-
-### Globales
-
-| Tecla | Qué hace |
+| Key | Action |
 | --- | --- |
-| `1` | ir al árbol de ficheros |
-| `2` | ir al diff |
-| `3` | ir a los comentarios |
-| `Esc` | salir de visual o de insert, cancelando lo que hubiera a medias; en la pantalla de selección, volver atrás |
-| `y` | exportar la revisión a Markdown |
-| `e` | copiar al portapapeles la ruta del Markdown exportado |
+| `1` | Focus the file tree. |
+| `2` | Focus the diff. |
+| `3` | Focus the comments. |
+| `Esc` | Leave visual/insert mode or cancel the current action. |
+| `y` | Export the review as Markdown. |
+| `e` | Copy the exported Markdown path. |
 
-### Árbol de ficheros
+### File tree
 
-| Tecla | Qué hace |
+| Key | Action |
 | --- | --- |
-| `j` / `k` | bajar / subir una fila |
-| `h` | cerrar la carpeta, o saltar a la que contiene la fila |
-| `l` | abrir la carpeta |
-| `Enter` | abrir el fichero en el diff, o plegar y desplegar la carpeta |
+| `j` / `k` | Move down/up. |
+| `h` | Collapse a directory or move to its parent. |
+| `l` | Expand a directory. |
+| `Enter` | Open a file or toggle a directory. |
 
 ### Diff
 
-| Tecla | Qué hace |
+| Key | Action |
 | --- | --- |
-| `j` / `k` | bajar / subir una línea, o extender el rango en visual |
-| `gg` / `G` | ir al principio / al final |
-| `Ctrl+d` / `Ctrl+u` | media página abajo / arriba |
-| `Ctrl+w v` / `Ctrl+w o` | vista partida / vista unificada |
-| `Ctrl+w h` / `Ctrl+w l` | columna vieja / columna nueva de la vista partida |
-| `h` / `l` | lo mismo, sin el prefijo de ventana |
-| `v` | entrar en visual y empezar un rango |
-| `c` | comentar el rango marcado |
+| `j` / `k` | Move down/up or extend a visual selection. |
+| `gg` / `G` | Jump to the first/last line. |
+| `Ctrl+d` / `Ctrl+u` | Move half a page down/up. |
+| `Ctrl+w v` / `Ctrl+w o` | Open split/unified view. |
+| `h` / `l` | Select the old/new side in split view. |
+| `Ctrl+w h` / `Ctrl+w l` | Select the old/new side in split view. |
+| `v` | Start a visual selection. |
+| `c` | Comment on the selected range. |
 
-### Comentarios
+### Comments
 
-| Tecla | Qué hace |
+| Key | Action |
 | --- | --- |
-| `j` / `k` | bajar / subir un comentario |
-| `gg` / `G` | ir al primero / al último |
-| `i` | editar el comentario seleccionado |
-| `Enter` | abrir el fichero y saltar a las líneas que comenta |
-| `dd` | borrar el comentario |
-| `zc` / `zo` | plegar / desplegar el texto del comentario |
-| `Ctrl+Enter` | guardar el comentario que estás escribiendo |
+| `j` / `k` | Move down/up. |
+| `gg` / `G` | Jump to the first/last comment. |
+| `i` | Edit the selected comment. |
+| `Enter` | Open the referenced file and line range. |
+| `dd` | Delete the selected comment. |
+| `zc` / `zo` | Collapse/expand the selected comment. |
+| `Ctrl+Enter` | Save the comment being written. |
 
-### Pantalla de selección
+### Repository picker
 
-| Atajo | Qué hace |
+| Key | Action |
 | --- | --- |
-| `1` / `2` / `3` | repos recientes / explorador de directorios / ámbito a revisar |
-| `j` / `k` | moverse por la lista |
-| `l` | entrar en el directorio |
-| `h` | subir al directorio de encima |
-| `Enter` | elegir el repo, el ámbito o el commit |
+| `1` / `2` / `3` | Focus recent repositories, browser, or scope. |
+| `j` / `k` | Move through the active list. |
+| `l` / `h` | Enter a directory / move to its parent. |
+| `Enter` | Select the highlighted repository, scope, or commit. |
 
-Mientras escribes un comentario el teclado está en modo insert: solo responden
-`Ctrl+Enter`, que guarda, y `Esc`, que descarta lo escrito. Todo lo demás es
-texto.
+## Exporting a review
 
-## De vuelta a Codex
+Press `y` to export the current comments to a Markdown file:
 
-Con la revisión terminada, `y` exporta todos los comentarios a un Markdown en
-`~/.codex/reviews/`:
-
-```
+```text
 ~/.codex/reviews/review-2026-07-26.md
 ```
 
-Un bloque por comentario, con la ruta del fichero, el rango de líneas y tu
-texto tal cual, ordenados como el árbol (la variable `REVIEWV4_REVIEWS_DIR`
-cambia ese directorio). `e` copia esa ruta al portapapeles, y
-el viaje se cierra pasándosela a Codex:
+Press `e` to copy its absolute path, then hand it to Codex:
 
-```
-> aplica las correcciones de ~/.codex/reviews/review-2026-07-26.md
+```text
+Apply the corrections in ~/.codex/reviews/review-2026-07-26.md
 ```
 
-La IA lee el fichero, corrige, y la siguiente vuelta empieza otra vez en
-`reviewer`.
+## Development
 
-## Desarrollo
-
-```
-npm run tauri dev            # la aplicación en modo desarrollo
-npm test                     # tests del front (Vitest)
-npx tsc --noEmit             # typecheck
-cd src-tauri && cargo test   # tests de Rust
-npm run smoke:build          # build de release y humo del binario instalado
+```sh
+npm run tauri dev
+npm test
+npm run typecheck
+cd src-tauri && cargo test
+npm run smoke:build
 ```
 
-## Licencia
+## License
 
-Distribuido bajo la licencia MIT. Consulta [`LICENSE`](LICENSE).
+Distributed under the [MIT License](LICENSE).

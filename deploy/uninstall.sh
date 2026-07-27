@@ -5,10 +5,10 @@ set -euo pipefail
 
 usage() {
   cat <<'FIN'
-uso: uninstall.sh [--prefix <dir>] [--dry-run]
-  --prefix <dir>   de dónde desinstalar; por defecto ~/.local
-  --dry-run        dice lo que borraría y no borra nada
-  --help, -h       muestra esta ayuda
+usage: uninstall.sh [--prefix <dir>] [--dry-run]
+  --prefix <dir>   installation prefix; defaults to ~/.local
+  --dry-run        print planned removals without deleting anything
+  --help, -h       show this help
 FIN
 }
 
@@ -29,12 +29,12 @@ while [[ $# -gt 0 ]]; do
       ;;
     --prefix)
       if [[ -z "${2:-}" ]]; then
-        die 64 "--prefix necesita un directorio"
+        die 64 "--prefix requires a directory"
       fi
       # `uninstall.sh --prefix --dry-run` would take the option for a directory
       # and report on a prefix nobody asked about.
       if [[ "$2" == -* ]]; then
-        die 64 "--prefix necesita un directorio, no la opción $2 (usa --prefix=$2 si de verdad se llama así)"
+        die 64 "--prefix requires a directory, not option $2 (use --prefix=$2 if that is really its name)"
       fi
       PREFIX="$2"
       shift
@@ -42,7 +42,7 @@ while [[ $# -gt 0 ]]; do
     --prefix=*)
       PREFIX="${1#--prefix=}"
       if [[ -z "$PREFIX" ]]; then
-        die 64 "--prefix necesita un directorio"
+        die 64 "--prefix requires a directory"
       fi
       ;;
     -h | --help)
@@ -50,7 +50,7 @@ while [[ $# -gt 0 ]]; do
       exit 0
       ;;
     *)
-      die 64 "opción desconocida: $1 (prueba uninstall.sh --help)"
+      die 64 "unknown option: $1 (try uninstall.sh --help)"
       ;;
   esac
   shift
@@ -58,7 +58,7 @@ done
 
 if [[ -z "$PREFIX" ]]; then
   if [[ -z "${HOME:-}" ]]; then
-    die 64 "sin HOME en el entorno hace falta --prefix <dir>"
+    die 64 "--prefix <dir> is required when HOME is not set"
   fi
   PREFIX="$HOME/.local"
 fi
@@ -92,20 +92,20 @@ for target in "${INSTALLED[@]}"; do
   # and letting `rm` fail here would abort before the remaining two.
   if [[ -d "$target" && ! -L "$target" ]]; then
     BLOCKED=$((BLOCKED + 1))
-    printf '  ✗ en %s hay un directorio, no el fichero que instalé: lo dejo como está\n' "$(pretty "$target")" >&2
+    printf '  ✗ %s is a directory, not the installed file; leaving it untouched\n' "$(pretty "$target")" >&2
     continue
   fi
   REMOVED=$((REMOVED + 1))
   if [[ $DRY_RUN -eq 1 ]]; then
-    printf '  [dry-run] borraría %s\n' "$(pretty "$target")"
+    printf '  [dry-run] would remove %s\n' "$(pretty "$target")"
   else
     rm -f -- "$target"
-    printf '  ✓ borrado %s\n' "$(pretty "$target")"
+    printf '  ✓ removed %s\n' "$(pretty "$target")"
   fi
 done
 
 if [[ $REMOVED -eq 0 && $BLOCKED -eq 0 ]]; then
-  printf '  · no hay nada instalado en %s\n' "$(pretty "$PREFIX")"
+  printf '  · nothing is installed under %s\n' "$(pretty "$PREFIX")"
 fi
 
 if [[ $BLOCKED -gt 0 ]]; then

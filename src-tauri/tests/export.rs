@@ -16,7 +16,7 @@
 //!   * the document ends with exactly one `\n`;
 //!   * the text of a comment is written verbatim, only trimmed at both ends;
 //!   * a comment that is blank after trimming is left out, and a review with
-//!     nothing left to write falls back to `Sin comentarios.`;
+//!     nothing left to write falls back to `No comments.`;
 //!   * a path missing from `order` is exported last, in alphabetical order —
 //!     never dropped, because a comment on a file that left the diff is still
 //!     work the reviewer did;
@@ -24,7 +24,7 @@
 //!   * `YYYY-MM-DD` is the **local** date, the day the reviewer is having.
 //!
 //! Nothing here may touch `~/.codex/reviews/`: every test that writes points
-//! the reviews directory at a `TempDir` through `REVIEWV4_REVIEWS_DIR`.
+//! the reviews directory at a `TempDir` through `LOCAL_REVIEWER_REVIEWS_DIR`.
 
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
@@ -32,14 +32,14 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Mutex;
 
-use reviewv4_lib::export::{export, render};
-use reviewv4_lib::git::{Scope, Side};
-use reviewv4_lib::review::model::{Comment, DiffView, Review};
-use reviewv4_lib::review::ReviewError;
+use local_reviewer_lib::export::{export, render};
+use local_reviewer_lib::git::{Scope, Side};
+use local_reviewer_lib::review::model::{Comment, DiffView, Review};
+use local_reviewer_lib::review::ReviewError;
 use serde::Deserialize;
 use tempfile::TempDir;
 
-const REVIEWS_DIR_ENV: &str = "REVIEWV4_REVIEWS_DIR";
+const REVIEWS_DIR_ENV: &str = "LOCAL_REVIEWER_REVIEWS_DIR";
 
 const PHP: &str = "src/UserService.php";
 const TS: &str = "src/Order.ts";
@@ -73,7 +73,7 @@ fn with_reviews_dir<T>(body: impl FnOnce(&Path) -> T) -> T {
 
 fn worktree() -> Scope {
     Scope::Worktree {
-        repo: "/home/dev/reviewv4".to_string(),
+        repo: "/home/dev/local-reviewer".to_string(),
     }
 }
 
@@ -172,11 +172,11 @@ fn assert_named_today(path: &str, before: &str, after: &str, nth: u32) {
 const SPEC_DOCUMENT: &str = "\
 # Review
 
-## Comentarios
+## Comments
 
 ### src/UserService.php
 
-Líneas 35-48
+Lines 35-48
 
 El método tiene demasiadas responsabilidades.
 
@@ -186,7 +186,7 @@ Separar validación de persistencia.
 
 ### src/UserService.php
 
-Líneas 102-110
+Lines 102-110
 
 Evitar duplicación del bloque try/catch.
 
@@ -194,7 +194,7 @@ Evitar duplicación del bloque try/catch.
 
 ### src/Order.ts
 
-Líneas 15-26
+Lines 15-26
 
 El nombre de la función no refleja realmente lo que hace.
 ";
@@ -202,9 +202,9 @@ El nombre de la función no refleja realmente lo que hace.
 const EMPTY_DOCUMENT: &str = "\
 # Review
 
-## Comentarios
+## Comments
 
-Sin comentarios.
+No comments.
 ";
 
 #[test]
@@ -257,7 +257,7 @@ fn ts40_the_wording_of_a_range_is_the_one_the_panel_shows() {
         assert_eq!(
             render(&review, &order(&[PHP])),
             format!(
-                "# Review\n\n## Comentarios\n\n### {PHP}\n\n{}\n\nuna nota\n",
+                "# Review\n\n## Comments\n\n### {PHP}\n\n{}\n\nuna nota\n",
                 case.label
             ),
             "the anchor ({}, {}) is not worded the way the panel words it",
@@ -273,7 +273,7 @@ fn ts40_the_separator_goes_between_comments_and_never_after_the_last() {
     let rendered = render(&one, &order(&[PHP]));
     assert_eq!(
         rendered,
-        "# Review\n\n## Comentarios\n\n### src/UserService.php\n\nLínea 1\n\nsola\n"
+        "# Review\n\n## Comments\n\n### src/UserService.php\n\nLine 1\n\nsola\n"
     );
     assert!(
         !rendered.contains("---"),
@@ -302,13 +302,13 @@ fn ts40_the_files_follow_the_order_of_the_tree_and_not_the_alphabet() {
 
     assert_eq!(
         tree_first,
-        "# Review\n\n## Comentarios\n\n### src/UserService.php\n\nLíneas 35-48\n\nen UserService\n\
-         \n---\n\n### src/Order.ts\n\nLíneas 15-26\n\nen Order\n"
+        "# Review\n\n## Comments\n\n### src/UserService.php\n\nLines 35-48\n\nen UserService\n\
+         \n---\n\n### src/Order.ts\n\nLines 15-26\n\nen Order\n"
     );
     assert_eq!(
         tree_last,
-        "# Review\n\n## Comentarios\n\n### src/Order.ts\n\nLíneas 15-26\n\nen Order\n\
-         \n---\n\n### src/UserService.php\n\nLíneas 35-48\n\nen UserService\n"
+        "# Review\n\n## Comments\n\n### src/Order.ts\n\nLines 15-26\n\nen Order\n\
+         \n---\n\n### src/UserService.php\n\nLines 35-48\n\nen UserService\n"
     );
 }
 
@@ -325,11 +325,11 @@ fn ts40_inside_a_file_the_comments_follow_their_first_line() {
 
     assert_eq!(
         render(&review, &order(&[PHP])),
-        "# Review\n\n## Comentarios\n\n\
-         ### src/UserService.php\n\nLínea 12\n\nla primera\n\
-         \n---\n\n### src/UserService.php\n\nLíneas 40-60\n\nla segunda\n\
-         \n---\n\n### src/UserService.php\n\nLínea 50\n\nla tercera\n\
-         \n---\n\n### src/UserService.php\n\nLíneas 102-110\n\nla cuarta\n"
+        "# Review\n\n## Comments\n\n\
+         ### src/UserService.php\n\nLine 12\n\nla primera\n\
+         \n---\n\n### src/UserService.php\n\nLines 40-60\n\nla segunda\n\
+         \n---\n\n### src/UserService.php\n\nLine 50\n\nla tercera\n\
+         \n---\n\n### src/UserService.php\n\nLines 102-110\n\nla cuarta\n"
     );
 }
 
@@ -346,9 +346,9 @@ fn ts40_the_numbers_are_the_ones_of_the_side_the_comment_hangs_from() {
 
     assert_eq!(
         rendered,
-        "# Review\n\n## Comentarios\n\n\
-         ### src/UserService.php\n\nLíneas 12-13\n\nel bloque que se va\n\
-         \n---\n\n### src/UserService.php\n\nLínea 36\n\nla línea que queda\n"
+        "# Review\n\n## Comments\n\n\
+         ### src/UserService.php\n\nLines 12-13\n\nel bloque que se va\n\
+         \n---\n\n### src/UserService.php\n\nLine 36\n\nla línea que queda\n"
     );
     for mark in ["old", "new", "(viejo)", "(nuevo)", "antiguo"] {
         assert!(
@@ -367,9 +367,9 @@ fn ts40_two_comments_on_the_same_range_keep_the_order_of_the_review() {
 
     assert_eq!(
         render(&review, &order(&[PHP])),
-        "# Review\n\n## Comentarios\n\n\
-         ### src/UserService.php\n\nLíneas 35-48\n\nprimera lectura\n\
-         \n---\n\n### src/UserService.php\n\nLíneas 35-48\n\nsegunda lectura\n"
+        "# Review\n\n## Comments\n\n\
+         ### src/UserService.php\n\nLines 35-48\n\nprimera lectura\n\
+         \n---\n\n### src/UserService.php\n\nLines 35-48\n\nsegunda lectura\n"
     );
 }
 
@@ -385,10 +385,10 @@ fn ts40_a_file_missing_from_the_order_is_written_last_and_never_dropped() {
 
     assert_eq!(
         render(&review, &order(&[PHP])),
-        "# Review\n\n## Comentarios\n\n\
-         ### src/UserService.php\n\nLíneas 35-48\n\nen el árbol\n\
-         \n---\n\n### src/Borrado.php\n\nLínea 4\n\nel primer huérfano\n\
-         \n---\n\n### src/Zeta.ts\n\nLínea 1\n\nel segundo huérfano\n"
+        "# Review\n\n## Comments\n\n\
+         ### src/UserService.php\n\nLines 35-48\n\nen el árbol\n\
+         \n---\n\n### src/Borrado.php\n\nLine 4\n\nel primer huérfano\n\
+         \n---\n\n### src/Zeta.ts\n\nLine 1\n\nel segundo huérfano\n"
     );
 }
 
@@ -401,9 +401,9 @@ fn ts40_an_empty_order_still_exports_every_comment() {
 
     assert_eq!(
         render(&review, &[]),
-        "# Review\n\n## Comentarios\n\n\
-         ### src/a.ts\n\nLínea 1\n\nla a\n\
-         \n---\n\n### src/b.ts\n\nLínea 2\n\nla b\n"
+        "# Review\n\n## Comments\n\n\
+         ### src/a.ts\n\nLine 1\n\nla a\n\
+         \n---\n\n### src/b.ts\n\nLine 2\n\nla b\n"
     );
 }
 
@@ -415,7 +415,7 @@ fn ts40_a_file_of_the_order_with_no_comments_gets_no_heading() {
 
     assert_eq!(
         rendered,
-        "# Review\n\n## Comentarios\n\n### src/UserService.php\n\nLínea 35\n\nla única\n"
+        "# Review\n\n## Comments\n\n### src/UserService.php\n\nLine 35\n\nla única\n"
     );
     assert!(!rendered.contains("Otro.ts"), "got {rendered}");
     assert!(!rendered.contains("Tercero.ts"), "got {rendered}");
@@ -428,9 +428,9 @@ fn ts40_a_path_with_spaces_accents_and_quotes_travels_verbatim() {
 
     assert_eq!(
         render(&review, &order(&[path])),
-        "# Review\n\n## Comentarios\n\n\
+        "# Review\n\n## Comments\n\n\
          ### informes finales/año 2026/resumen \"final\".md\n\n\
-         Líneas 3-4\n\nojo con el nombre\n"
+         Lines 3-4\n\nojo con el nombre\n"
     );
 }
 
@@ -443,7 +443,7 @@ fn ts40_the_text_of_a_comment_travels_verbatim_hashes_and_dashes_included() {
 
     assert_eq!(
         render(&review, &order(&[PHP])),
-        format!("# Review\n\n## Comentarios\n\n### {PHP}\n\nLínea 7\n\n{text}\n")
+        format!("# Review\n\n## Comments\n\n### {PHP}\n\nLine 7\n\n{text}\n")
     );
 }
 
@@ -459,7 +459,7 @@ fn ts40_the_blank_space_around_a_text_is_trimmed_and_the_inside_is_not() {
     assert_eq!(
         render(&review, &order(&[PHP])),
         format!(
-            "# Review\n\n## Comentarios\n\n### {PHP}\n\nLínea 7\n\n\
+            "# Review\n\n## Comments\n\n### {PHP}\n\nLine 7\n\n\
              primera línea\n\n  segunda línea\n"
         )
     );
@@ -475,7 +475,7 @@ fn ts40_a_comment_that_is_blank_after_trimming_is_left_out() {
 
     assert_eq!(
         render(&review, &order(&[PHP])),
-        format!("# Review\n\n## Comentarios\n\n### {PHP}\n\nLínea 9\n\nesta sí\n")
+        format!("# Review\n\n## Comments\n\n### {PHP}\n\nLine 9\n\nesta sí\n")
     );
 }
 
@@ -516,13 +516,13 @@ fn ts40_two_hundred_comments_keep_one_heading_each_and_a_separator_between() {
 
     assert_eq!(rendered.matches(&format!("### {PHP}\n")).count(), 200);
     assert_eq!(rendered.matches("\n---\n").count(), 199);
-    assert!(rendered.starts_with("# Review\n\n## Comentarios\n\n### "));
+    assert!(rendered.starts_with("# Review\n\n## Comments\n\n### "));
     let tail: String = rendered
         .chars()
         .skip(rendered.chars().count() - 40)
         .collect();
     assert!(
-        rendered.ends_with("Línea 200\n\nnota 199\n"),
+        rendered.ends_with("Line 200\n\nnota 199\n"),
         "the document does not end on the last comment, it ends on {tail:?}"
     );
 }

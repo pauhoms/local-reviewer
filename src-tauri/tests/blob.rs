@@ -1,8 +1,8 @@
 mod helpers;
 
 use helpers::git_fixture::TempRepo;
-use reviewv4_lib::git::blob::read_blob;
-use reviewv4_lib::git::{Scope, Side};
+use local_reviewer_lib::git::blob::read_blob;
+use local_reviewer_lib::git::{Scope, Side};
 
 const APP_V1: &str = "const a = 1;\nconst b = 2;\n";
 const APP_V2: &str = "const a = 1;\nconst b = 22;\nconst c = 3;\n";

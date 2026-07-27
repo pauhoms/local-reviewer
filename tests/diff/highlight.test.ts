@@ -7,7 +7,7 @@ const TS_SOURCE = [
   "",
   "/**",
   " * public function ghost(): void",
-  " * señal 🚀 con tabulador\tdentro",
+  " * signal 🚀 with tab\tinside",
   " */",
   "export function real(): void {}",
 ].join("\n");
@@ -17,9 +17,9 @@ const PHP_SOURCE = [
   "",
   "class UserService",
   "{",
-  "    /* Mapea la fila cruda.",
+  "    /* Maps the raw row.",
   "     * public function ghost(): void",
-  "     * señal 🚀 dentro del comentario",
+  "     * signal 🚀 inside the comment",
   "     */",
   "    private function map(array $row): User {",
   "        return new User($row);",
@@ -39,7 +39,7 @@ function colours(line: Token[]): Set<string | undefined> {
 function colourOf(line: Token[], word: string): string | undefined {
   const token = line.find((candidate) => candidate.content.trim() === word);
   if (!token) {
-    throw new Error(`no hay token «${word}» en ${JSON.stringify(line.map((t) => t.content))}`);
+    throw new Error(`there is no "${word}" token in ${JSON.stringify(line.map((t) => t.content))}`);
   }
   return token.color;
 }
@@ -162,7 +162,7 @@ describe("the whole file is tokenized at once, never line by line", () => {
     const lines = await tokenizeFile(PHP_SOURCE, "php");
     const rows = PHP_SOURCE.split("\n");
 
-    const commentColour = colourOf(lines[4], "/* Mapea la fila cruda.");
+    const commentColour = colourOf(lines[4], "/* Maps the raw row.");
 
     for (const index of [5, 6, 7]) {
       expect(text(lines[index])).toBe(rows[index]);

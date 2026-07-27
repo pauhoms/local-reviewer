@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef } from "react";
 import type { DiffTotals, FlatRow } from "@/tree/build-tree";
 
-const TITLE = "1 ÁRBOL";
+const TITLE = "1 FILES";
 
 interface TreePanelProps {
   rows: FlatRow[];
@@ -41,7 +41,7 @@ function treeRow(
         {...shared}
         data-kind="dir"
         aria-expanded={row.expanded}
-        aria-label={`${node.name}, ${row.expanded ? "desplegada" : "plegada"}`}
+        aria-label={`${node.name}, ${row.expanded ? "expanded" : "collapsed"}`}
       >
         <span aria-hidden="true">{row.expanded ? "▾" : "▸"}</span>{" "}
         <span className="tree-name">{node.name}</span>
@@ -97,7 +97,7 @@ export default function TreePanel({
         </span>
       </h2>
       {rows.length === 0 ? (
-        <p className="panel-empty">Ningún fichero cambiado.</p>
+        <p className="panel-empty">No changed files.</p>
       ) : (
         <ul ref={listRef} role="listbox" className="panel-list tree-list">
           {rows.map((row, index) =>
@@ -105,7 +105,7 @@ export default function TreePanel({
           )}
         </ul>
       )}
-      <footer className="panel-help">j/k mover · l expandir · h contraer/subir · Enter abrir</footer>
+      <footer className="panel-help">j/k move · l expand · h collapse/up · Enter open</footer>
     </section>
   );
 }

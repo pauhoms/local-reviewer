@@ -8,7 +8,7 @@ export const SUMMARY_LIMIT = 72;
 export function lineRangeLabel(from: number, to: number): string {
   const first = Math.min(from, to);
   const last = Math.max(from, to);
-  return first === last ? `Línea ${first}` : `Líneas ${first}-${last}`;
+  return first === last ? `Line ${first}` : `Lines ${first}-${last}`;
 }
 
 /** One line of the comment for the list: the rest is in the editor. */

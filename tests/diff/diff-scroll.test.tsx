@@ -11,7 +11,7 @@ import App from "@/App";
 import { configureIpc } from "../helpers/ipc-mock";
 import { reviewStore } from "@/state/review";
 
-const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/reviewv4" };
+const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/local-reviewer" };
 
 const LINES = 200;
 
@@ -40,7 +40,7 @@ const bigFile: FileDiff = {
 
 function viewport(): HTMLElement {
   const node = panel("diff").querySelector<HTMLElement>("[data-diff-viewport]");
-  if (!node) throw new Error("el panel 2 no expone ningún [data-diff-viewport]");
+  if (!node) throw new Error("panel 2 does not expose [data-diff-viewport]");
   return node;
 }
 
@@ -64,7 +64,7 @@ function scrollToRow(row: number): void {
 async function boot(): Promise<void> {
   configureIpc({ startup: { scope: SCOPE, home: "/home/dev" }, diff: [bigFile] });
   render(<App />);
-  await screen.findByRole("region", { name: /^1 ÁRBOL/ });
+  await screen.findByRole("region", { name: /^1 FILES/ });
   const user = userEvent.setup();
   await user.keyboard("2");
   await act(async () => undefined);

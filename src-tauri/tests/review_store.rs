@@ -1,6 +1,6 @@
 //! TS-29 / TS-30 — the review store: comments anchored to
 //! (file, side, first line, last line), persisted as one JSON per review under
-//! `$REVIEWV4_REVIEWS_DIR/.state/` with an atomic write.
+//! `$LOCAL_REVIEWER_REVIEWS_DIR/.state/` with an atomic write.
 //!
 //! Nothing here may touch `~/.codex/reviews/`: every test points the reviews
 //! directory at a `TempDir` through the environment variable.
@@ -12,15 +12,15 @@ use std::process::Command;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Mutex;
 
-use reviewv4_lib::git::{Scope, Side};
-use reviewv4_lib::review::model::{Comment, DiffView, Review};
-use reviewv4_lib::review::store::{load, save, scope_key};
-use reviewv4_lib::review::ReviewError;
+use local_reviewer_lib::git::{Scope, Side};
+use local_reviewer_lib::review::model::{Comment, DiffView, Review};
+use local_reviewer_lib::review::store::{load, save, scope_key};
+use local_reviewer_lib::review::ReviewError;
 use serde_json::{json, Value};
 use tempfile::TempDir;
 
-const REVIEWS_DIR_ENV: &str = "REVIEWV4_REVIEWS_DIR";
-const EXPECTED_ENV: &str = "REVIEWV4_TEST_EXPECTED_REVIEW";
+const REVIEWS_DIR_ENV: &str = "LOCAL_REVIEWER_REVIEWS_DIR";
+const EXPECTED_ENV: &str = "LOCAL_REVIEWER_TEST_EXPECTED_REVIEW";
 
 /// The reviews directory travels in the environment, which is process-wide:
 /// tests that point it somewhere else must not overlap.
@@ -74,7 +74,7 @@ fn file_names(dir: &Path) -> Vec<String> {
 
 fn worktree() -> Scope {
     Scope::Worktree {
-        repo: "/home/dev/reviewv4".to_string(),
+        repo: "/home/dev/local-reviewer".to_string(),
     }
 }
 
@@ -416,7 +416,7 @@ fn ts29_the_review_serialises_to_the_shape_the_front_expects() {
     assert_eq!(
         value,
         json!({
-            "scope": { "kind": "worktree", "repo": "/home/dev/reviewv4" },
+            "scope": { "kind": "worktree", "repo": "/home/dev/local-reviewer" },
             "comments": [{
                 "id": "c1",
                 "path": "src/UserService.php",
@@ -532,7 +532,7 @@ fn ts29_two_scopes_of_the_same_repo_do_not_overwrite_each_other() {
     with_reviews_dir(|dir| {
         let tree = worktree();
         let commit = Scope::Commit {
-            repo: "/home/dev/reviewv4".to_string(),
+            repo: "/home/dev/local-reviewer".to_string(),
             sha: "a1b2c3".to_string(),
         };
 
@@ -868,7 +868,7 @@ fn ts30_a_corrupt_state_file_invents_nothing_and_can_be_written_over() {
         "[\"esto es la lista de recientes\"]",
         "null",
         "",
-        "{\"scope\": {\"kind\": \"worktree\", \"repo\": \"/home/dev/reviewv4\"}, \"comments\": [{\"id\"",
+        "{\"scope\": {\"kind\": \"worktree\", \"repo\": \"/home/dev/local-reviewer\"}, \"comments\": [{\"id\"",
     ] {
         with_reviews_dir(|dir| {
             fs::create_dir_all(state_dir(dir)).expect("create the state dir");
@@ -924,7 +924,7 @@ fn ts29_a_state_file_holding_another_scope_is_not_read_as_this_one() {
     with_reviews_dir(|dir| {
         let intruder = review(
             Scope::Commit {
-                repo: "/home/dev/reviewv4".to_string(),
+                repo: "/home/dev/local-reviewer".to_string(),
                 sha: "a1b2c3d".to_string(),
             },
             vec![comment(

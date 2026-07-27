@@ -21,7 +21,7 @@ function unescapeString(raw: string): string {
     }
     const escaped = STRING_ESCAPES[raw[at + 1] ?? ""];
     if (escaped === undefined) {
-      throw new Error(`escape \\${raw[at + 1] ?? "<fin de línea>"} inválido en «${raw}»`);
+      throw new Error(`invalid escape \\${raw[at + 1] ?? "<end of line>"} in "${raw}"`);
     }
     out += escaped;
     at += 1;
@@ -57,7 +57,7 @@ function split(value: string): string[] {
       started = true;
     }
   }
-  if (quoted) throw new Error(`comilla sin cerrar en «${value}»`);
+  if (quoted) throw new Error(`unclosed quote in "${value}"`);
   if (started) args.push(current);
   return args;
 }
@@ -70,7 +70,7 @@ function expandFieldCodes(arg: string): string {
       continue;
     }
     if (arg[at + 1] !== "%") {
-      throw new Error(`código de campo %${arg[at + 1] ?? "<fin>"} sin escapar en «${arg}»`);
+      throw new Error(`unescaped field code %${arg[at + 1] ?? "<end>"} in "${arg}"`);
     }
     out += "%";
     at += 1;
@@ -85,7 +85,7 @@ function expandFieldCodes(arg: string): string {
  */
 export function execArgv(entry: string): string[] {
   const raw = desktopValue(entry, "Exec");
-  if (raw === undefined) throw new Error("la entrada no tiene clave Exec");
+  if (raw === undefined) throw new Error("the entry has no Exec key");
   return split(unescapeString(raw)).map(expandFieldCodes);
 }
 

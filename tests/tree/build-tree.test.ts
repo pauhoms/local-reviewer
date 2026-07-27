@@ -62,7 +62,7 @@ describe("buildTree", () => {
     expect(src).toMatchObject({ kind: "dir", name: "src", path: "src" });
     expect(readme).toMatchObject({ kind: "file", name: "readme.md", path: "readme.md" });
 
-    if (src.kind !== "dir") throw new Error("src debería ser una carpeta");
+    if (src.kind !== "dir") throw new Error("src should be a directory");
     expect(src.children[0]).toMatchObject({
       kind: "dir",
       name: "domain",
@@ -80,9 +80,9 @@ describe("buildTree", () => {
 
     const [src] = buildTree([diff]);
 
-    if (src.kind !== "dir") throw new Error("src debería ser una carpeta");
+    if (src.kind !== "dir") throw new Error("src should be a directory");
     const [app] = src.children;
-    if (app.kind !== "file") throw new Error("app.ts debería ser un fichero");
+    if (app.kind !== "file") throw new Error("app.ts should be a file");
     expect(app.file).toBe(diff);
   });
 

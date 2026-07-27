@@ -1,8 +1,8 @@
 mod helpers;
 
 use helpers::git_fixture::{path_str, TempRepo};
-use reviewv4_lib::git::commits::list_commits;
-use reviewv4_lib::git::GitError;
+use local_reviewer_lib::git::commits::list_commits;
+use local_reviewer_lib::git::GitError;
 use tempfile::TempDir;
 
 fn repo_with_history() -> (TempRepo, Vec<String>) {

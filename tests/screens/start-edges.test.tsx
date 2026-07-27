@@ -10,7 +10,7 @@ import * as ipc from "../helpers/ipc-mock";
 import App from "@/App";
 
 const HOME = "/home/dev";
-const REPO = "/home/dev/reviewv4";
+const REPO = "/home/dev/local-reviewer";
 
 const COMMITS: CommitInfo[] = [
   {
@@ -39,15 +39,15 @@ const COMMITS: CommitInfo[] = [
 const DIRS: Record<string, DirEntryInfo[]> = {
   [HOME]: [
     { name: "prx", path: "/home/dev/prx", isGitRepo: false },
-    { name: "reviewv4", path: REPO, isGitRepo: true },
+    { name: "local-reviewer", path: REPO, isGitRepo: true },
     { name: "notas", path: "/home/dev/notas", isGitRepo: false },
   ],
   "/home/dev/notas": [],
 };
 
-const RECENTS = /Recientes/;
-const BROWSER = /Navegar/;
-const SCOPE = /¿Qué revisamos\?/;
+const RECENTS = /Recent/;
+const BROWSER = /Browse/;
+const SCOPE = /Review scope/;
 const DIFF_PANEL = /2 DIFF/;
 
 function region(name: RegExp): HTMLElement {
@@ -67,7 +67,7 @@ function cursorIn(container: HTMLElement): string {
 }
 
 function modeList(): HTMLElement {
-  return within(region(SCOPE)).getByRole("listbox", { name: /Alcance/i });
+  return within(region(SCOPE)).getByRole("listbox", { name: /Scope/i });
 }
 
 function commitList(): HTMLElement {
@@ -94,20 +94,20 @@ beforeEach(() => {
 describe("the start screen survives what the system throws at it", () => {
   it("explains a startup that could not resolve and still lets the user pick", async () => {
     ipc.configureIpc({ recents: [REPO], dirs: DIRS, commits: COMMITS });
-    ipc.getStartup.mockRejectedValueOnce("no se pudo determinar tu directorio personal");
+    ipc.getStartup.mockRejectedValueOnce("could not determine your home directory");
 
     const user = userEvent.setup();
     render(<App />);
 
     const alert = await screen.findByRole("alert");
-    expect(alert).toHaveTextContent(/no se pudo determinar tu directorio personal/i);
+    expect(alert).toHaveTextContent(/could not determine your home directory/i);
 
     await user.keyboard("{Enter}");
 
     expect(await screen.findByRole("region", { name: RECENTS })).toBeInTheDocument();
     await waitFor(() => expect(optionsIn(region(RECENTS))).toHaveLength(1));
     expect(await screen.findByRole("status")).toHaveTextContent(
-      /no se pudo determinar tu directorio personal/i,
+      /could not determine your home directory/i,
     );
     expect(ipc.browseDir).not.toHaveBeenCalled();
   });
@@ -119,7 +119,7 @@ describe("the start screen survives what the system throws at it", () => {
       dirs: DIRS,
       commits: COMMITS,
     });
-    ipc.listCommits.mockRejectedValueOnce(new Error("/home/dev/reviewv4 no es un repositorio git"));
+    ipc.listCommits.mockRejectedValueOnce(new Error("/home/dev/local-reviewer is not a Git repository"));
 
     const user = userEvent.setup();
     render(<App />);
@@ -128,7 +128,7 @@ describe("the start screen survives what the system throws at it", () => {
 
     const notice = await screen.findByRole("status");
     expect(notice).toHaveTextContent(REPO);
-    expect(notice).toHaveTextContent(/no es un repositorio git/);
+    expect(notice).toHaveTextContent(/is not a Git repository/);
 
     await user.keyboard("2");
     expect(region(BROWSER).getAttribute("data-active")).toBe("true");
@@ -176,7 +176,7 @@ describe("the start screen survives what the system throws at it", () => {
     await waitFor(() =>
       expect(region(BROWSER).getAttribute("data-path")).toBe("/home/dev/notas"),
     );
-    expect(within(region(BROWSER)).getByText(/No hay directorios aquí/i)).toBeInTheDocument();
+    expect(within(region(BROWSER)).getByText(/No directories here/i)).toBeInTheDocument();
 
     await user.keyboard("{Enter}");
     expect(region(BROWSER).getAttribute("data-path")).toBe("/home/dev/notas");
@@ -202,8 +202,8 @@ describe("the start screen survives what the system throws at it", () => {
     await user.keyboard("j");
     await user.keyboard("{Enter}");
 
-    expect(await screen.findByRole("status")).toHaveTextContent(/no tiene commits/i);
-    expect(cursorIn(modeList())).toContain("Un commit");
+    expect(await screen.findByRole("status")).toHaveTextContent(/has no commits/i);
+    expect(cursorIn(modeList())).toContain("Single commit");
     expect(ipc.getDiff).not.toHaveBeenCalled();
   });
 
@@ -235,13 +235,13 @@ describe("the start screen survives what the system throws at it", () => {
       dirs: DIRS,
       commits: COMMITS,
     });
-    ipc.listCommits.mockRejectedValueOnce(new Error("no es un repositorio git"));
+    ipc.listCommits.mockRejectedValueOnce(new Error("is not a Git repository"));
 
     const user = userEvent.setup();
     render(<App />);
     await screen.findByRole("region", { name: RECENTS });
     await pickTheRepo(user);
-    expect(await screen.findByRole("status")).toHaveTextContent(/no es un repositorio git/);
+    expect(await screen.findByRole("status")).toHaveTextContent(/is not a Git repository/);
 
     await user.keyboard("2");
     await user.keyboard("jj");
@@ -250,9 +250,9 @@ describe("the start screen survives what the system throws at it", () => {
 
     expect(screen.queryByRole("status")).toBeNull();
     expect(
-      within(region(SCOPE)).getByText(/No se pudieron leer los commits/i),
+      within(region(SCOPE)).getByText(/Could not read the commits/i),
     ).toBeInTheDocument();
-    expect(within(region(SCOPE)).queryByText(/no tiene commits/i)).toBeNull();
+    expect(within(region(SCOPE)).queryByText(/has no commits/i)).toBeNull();
   });
 
   it("does not offer a commit list it never managed to read", async () => {
@@ -262,7 +262,7 @@ describe("the start screen survives what the system throws at it", () => {
       dirs: DIRS,
       commits: COMMITS,
     });
-    ipc.listCommits.mockRejectedValueOnce(new Error("no es un repositorio git"));
+    ipc.listCommits.mockRejectedValueOnce(new Error("is not a Git repository"));
 
     const user = userEvent.setup();
     render(<App />);
@@ -274,9 +274,9 @@ describe("the start screen survives what the system throws at it", () => {
     await user.keyboard("{Enter}");
 
     const notice = await screen.findByRole("status");
-    expect(notice).toHaveTextContent(/no se pudieron leer los commits/i);
-    expect(notice).not.toHaveTextContent(/no tiene commits/i);
-    expect(cursorIn(modeList())).toContain("Un commit");
+    expect(notice).toHaveTextContent(/could not read.*commits/i);
+    expect(notice).not.toHaveTextContent(/has no commits/i);
+    expect(cursorIn(modeList())).toContain("Single commit");
     expect(ipc.getDiff).not.toHaveBeenCalled();
   });
 
@@ -287,20 +287,20 @@ describe("the start screen survives what the system throws at it", () => {
       dirs: DIRS,
       commits: COMMITS,
     });
-    ipc.browseDir.mockRejectedValueOnce(new Error("permiso denegado"));
+    ipc.browseDir.mockRejectedValueOnce(new Error("permission denied"));
 
     const user = userEvent.setup();
     render(<App />);
     await screen.findByRole("region", { name: RECENTS });
-    expect(await screen.findByRole("status")).toHaveTextContent(/permiso denegado/);
+    expect(await screen.findByRole("status")).toHaveTextContent(/permission denied/);
 
     await pickTheRepo(user);
 
     expect(screen.queryByRole("status")).toBeNull();
     expect(
-      within(region(BROWSER)).getByText(/No se pudo leer este directorio/i),
+      within(region(BROWSER)).getByText(/Could not read this directory/i),
     ).toBeInTheDocument();
-    expect(within(region(BROWSER)).queryByText(/No hay directorios aquí/i)).toBeNull();
+    expect(within(region(BROWSER)).queryByText(/No directories here/i)).toBeNull();
   });
 
   it("keeps saying the recents could not be read once another panel succeeds", async () => {
@@ -316,9 +316,9 @@ describe("the start screen survives what the system throws at it", () => {
     await waitFor(() => expect(optionsIn(region(BROWSER))).toHaveLength(3));
 
     expect(
-      within(region(RECENTS)).getByText(/No se pudo leer la lista de repos recientes/i),
+      within(region(RECENTS)).getByText(/Could not read the recent repository list/i),
     ).toBeInTheDocument();
-    expect(within(region(RECENTS)).queryByText(/Todavía no revisaste ningún repo/i)).toBeNull();
+    expect(within(region(RECENTS)).queryByText(/No repositories reviewed yet/i)).toBeNull();
   });
 
   it("does not remember a repo whose review never opened", async () => {
@@ -347,7 +347,7 @@ describe("the start screen survives what the system throws at it", () => {
     await screen.findByRole("region", { name: RECENTS });
     await waitFor(() =>
       expect(
-        within(region(RECENTS)).getByText(/Todavía no revisaste ningún repo/i),
+        within(region(RECENTS)).getByText(/No repositories reviewed yet/i),
       ).toBeInTheDocument(),
     );
     expect(ipc.recordRecent).not.toHaveBeenCalled();
@@ -400,10 +400,10 @@ describe("the scope picker walks back as well as forward", () => {
     expect(cursorIn(commitList())).toContain("a1b2c3d");
 
     await user.keyboard("{Escape}");
-    expect(cursorIn(modeList())).toContain("Cambios sin commitear");
+    expect(cursorIn(modeList())).toContain("Uncommitted changes");
 
     await user.keyboard("j");
-    expect(cursorIn(modeList())).toContain("Un commit");
+    expect(cursorIn(modeList())).toContain("Single commit");
     expect(ipc.getDiff).not.toHaveBeenCalled();
   });
 

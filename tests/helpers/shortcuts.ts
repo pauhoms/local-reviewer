@@ -9,7 +9,6 @@ const NAMED: Record<string, string> = {
   esc: "Escape",
   escape: "Escape",
   enter: "Enter",
-  intro: "Enter",
   return: "Enter",
   ret: "Enter",
 };
@@ -92,10 +91,10 @@ export function markdownTables(markdown: string): MarkdownTable[] {
   return tables;
 }
 
-const KEY_COLUMN = /tecla|atajo/i;
+const KEY_COLUMN = /key|shortcut/i;
 
 /**
- * The keys a shortcut table documents: the column headed «tecla» or «atajo»,
+ * The keys a shortcut table documents: the column headed "Key" or "Shortcut",
  * one entry per backticked span so a row can list `j` / `k` together.
  */
 export function documentedKeys(markdown: string): string[] {

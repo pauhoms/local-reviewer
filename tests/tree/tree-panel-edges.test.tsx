@@ -7,7 +7,7 @@ import { reviewStore } from "@/state/review";
 import TreePanel from "@/panels/TreePanel";
 import { panel } from "../keys/helpers";
 
-const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/reviewv4" };
+const SCOPE: Scope = { kind: "worktree", repo: "/home/dev/local-reviewer" };
 
 function fileDiff(path: string): FileDiff {
   return { path, oldPath: null, status: "M", additions: 1, deletions: 1, hunks: [] };
@@ -34,7 +34,7 @@ describe("TreePanel with nothing to show", () => {
     );
 
     expect(within(panel("tree")).queryAllByRole("option")).toEqual([]);
-    expect(screen.getByText(/ningún fichero/i)).toBeInTheDocument();
+    expect(screen.getByText(/No changed files/i)).toBeInTheDocument();
   });
 });
 

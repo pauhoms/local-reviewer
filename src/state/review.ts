@@ -252,7 +252,7 @@ export function createReviewStore(): ReviewStore {
         toolbarError:
           state.exportPath === null
             ? message
-            : `${message} · la última exportada sigue siendo ${state.exportPath}`,
+            : `${message} · the last successful export is still ${state.exportPath}`,
         copied: false,
       }),
     copied: () => set({ ...state, toolbarError: null, copied: true }),

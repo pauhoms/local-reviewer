@@ -7,20 +7,20 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU32, Ordering};
 
-const REVIEWS_DIR_ENV: &str = "REVIEWV4_REVIEWS_DIR";
+const REVIEWS_DIR_ENV: &str = "LOCAL_REVIEWER_REVIEWS_DIR";
 const STATE_DIR: &str = ".state";
 
 #[derive(Debug, thiserror::Error)]
 pub enum ReviewError {
-    #[error("no se pudo determinar dónde guardar las revisiones")]
+    #[error("could not determine where to store reviews")]
     NoReviewsDir,
-    #[error("no se pudo guardar {path}: {source}")]
+    #[error("could not save {path}: {source}")]
     Io {
         path: String,
         #[source]
         source: std::io::Error,
     },
-    #[error("no se pudo codificar el estado de la revisión: {0}")]
+    #[error("could not encode review state: {0}")]
     Encode(#[from] serde_json::Error),
 }
 
