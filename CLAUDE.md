@@ -38,6 +38,11 @@ Una sola máquina de teclado, reducer puro en `src/keys/machine.ts`:
   de movimiento ni de creación: el texto llega al campo y solo `Esc` sale.
 - El panel activo es estado aparte: cambiar de panel no altera el modo ni los
   cursores de los demás paneles.
+- **Lo que el teclado lee se lee del store, no del closure de un render.** Si un
+  comando cambia lo que otro comando lee —plegar cambia las filas, cambiar de
+  fichero cambia las líneas—, ese estado vive en `state/review.ts` y llega a los
+  keymaps por *getter*. Una ráfaga de teclas (auto-repeat) llega entera antes de
+  que React re-renderice.
 
 ## Convenciones de código
 
