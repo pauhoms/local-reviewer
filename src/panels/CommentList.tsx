@@ -1,6 +1,8 @@
+import { useLayoutEffect, useRef } from "react";
 import { lineRangeLabel, summarize } from "@/comments/label";
 import { basename } from "@/screens/paths";
 import type { ReviewComment } from "@/state/review";
+import { revealCursor } from "./cursor-scroll";
 
 interface CommentListProps {
   comments: readonly ReviewComment[];
@@ -39,8 +41,15 @@ function entry(comment: ReviewComment, onCursor: boolean, expanded: boolean): JS
 }
 
 export default function CommentList({ comments, cursor, folded }: CommentListProps): JSX.Element {
+  const listRef = useRef<HTMLUListElement>(null);
+
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    if (list) revealCursor(list);
+  }, [comments, cursor, folded]);
+
   return (
-    <ul role="listbox" className="panel-list comment-list">
+    <ul ref={listRef} role="listbox" className="panel-list comment-list">
       {comments.map((comment, index) =>
         entry(comment, index === cursor, !folded.has(comment.id)),
       )}

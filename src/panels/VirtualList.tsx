@@ -1,6 +1,7 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import type { ReactNode, UIEvent } from "react";
 import type { IndexWindow } from "@/diff/window";
+import { revealCursor } from "./cursor-scroll";
 
 /** Matches `--diff-line-height` in styles.css; used only while nothing can be measured. */
 const FALLBACK_ROW_HEIGHT = 24;
@@ -95,6 +96,13 @@ export default function VirtualList({
     if (Math.abs(node.scrollTop - top) < 1) return;
     scrolledRef.current = top;
     node.scrollTop = top;
+  });
+
+  // The virtual window normally predicts the right scroll offset, but rendered
+  // geometry is the final authority when CSS or the webview measures differently.
+  useLayoutEffect(() => {
+    const node = viewportRef.current;
+    if (node && revealCursor(node)) scrolledRef.current = node.scrollTop;
   });
 
   const handleScroll = useCallback(

@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef } from "react";
 import type { DiffTotals, FlatRow } from "@/tree/build-tree";
+import { revealCursor } from "./cursor-scroll";
 
 const TITLE = "1 FILES";
 
@@ -76,16 +77,7 @@ export default function TreePanel({
   // for us. Keep the selected row inside this panel's own scroll viewport.
   useLayoutEffect(() => {
     const list = listRef.current;
-    const selected = list?.querySelector<HTMLElement>('[data-cursor="true"]');
-    if (!list || !selected) return;
-
-    const viewport = list.getBoundingClientRect();
-    const row = selected.getBoundingClientRect();
-    if (row.top < viewport.top) {
-      list.scrollTop += row.top - viewport.top;
-    } else if (row.bottom > viewport.bottom) {
-      list.scrollTop += row.bottom - viewport.bottom;
-    }
+    if (list) revealCursor(list);
   }, [cursor, rows]);
 
   return (

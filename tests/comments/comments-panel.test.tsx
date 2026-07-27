@@ -709,6 +709,34 @@ describe("the list shows every comment", () => {
     expect(cursorId()).toBe(ids[2]);
   });
 
+  it("keeps comments reached with j and k inside the list scroll viewport", async () => {
+    const user = await boot();
+    seed(
+      seeded("c1", PHP_PATH, 35, 35, "First"),
+      seeded("c2", PHP_PATH, 36, 36, "Second"),
+    );
+    const list = commentsPanel().querySelector<HTMLElement>(".comment-list");
+    if (!list) throw new Error("panel 3 has no comment list");
+
+    vi.spyOn(list, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 300, 48));
+    vi.spyOn(entryOf("c2"), "getBoundingClientRect").mockReturnValue(
+      new DOMRect(0, 48, 300, 24),
+    );
+    vi.spyOn(entryOf("c1"), "getBoundingClientRect").mockReturnValue(
+      new DOMRect(0, -24, 300, 24),
+    );
+
+    await user.keyboard("3j");
+
+    expect(cursorId()).toBe("c2");
+    expect(list.scrollTop).toBe(24);
+
+    await user.keyboard("k");
+
+    expect(cursorId()).toBe("c1");
+    expect(list.scrollTop).toBe(0);
+  });
+
   it("TS-32: Enter opens the file of the comment and lands on its line", async () => {
     const user = await boot();
     // New line 101 is row 10 of the diff and old line 36 is row 6: neither

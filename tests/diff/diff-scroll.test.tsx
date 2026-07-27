@@ -106,3 +106,41 @@ describe("the wheel moves the window as far as the cursor allows", () => {
     expect(viewport().scrollTop).toBe(0);
   });
 });
+
+describe("the keyboard keeps the diff cursor on screen", () => {
+  it("uses the rendered row geometry instead of trusting the virtual window alone", async () => {
+    await boot();
+    const user = userEvent.setup();
+    const secondLine = panel("diff").querySelector<HTMLElement>('[data-line-index="1"]');
+    if (!secondLine) throw new Error("the second diff line is not mounted");
+
+    vi.spyOn(viewport(), "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 800, 48));
+    vi.spyOn(secondLine, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 48, 800, 24));
+
+    await user.keyboard("j");
+
+    expect(secondLine).toHaveAttribute("data-cursor", "true");
+    expect(viewport().scrollTop).toBe(24);
+  });
+
+  it("scrolls down with j and returns to the top with k", async () => {
+    await boot();
+    const user = userEvent.setup();
+
+    await user.keyboard("j".repeat(30));
+
+    expect(firstVisible()).toBeGreaterThan(0);
+    expect(viewport().scrollTop).toBeGreaterThan(0);
+    expect(
+      panel("diff").querySelector('[data-line-index="30"][data-cursor="true"]'),
+    ).toBeInTheDocument();
+
+    await user.keyboard("k".repeat(30));
+
+    expect(firstVisible()).toBe(0);
+    expect(viewport().scrollTop).toBe(0);
+    expect(
+      panel("diff").querySelector('[data-line-index="0"][data-cursor="true"]'),
+    ).toBeInTheDocument();
+  });
+});
