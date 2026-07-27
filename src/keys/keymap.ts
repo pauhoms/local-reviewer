@@ -17,6 +17,8 @@ export interface BindingContext {
   panel: Panel;
   panelState: PanelState;
   selection: Selection | null;
+  /** Set while the OS repeats a held key, so a row that writes to disk can opt out. */
+  repeat: boolean;
 }
 
 export type Binding = (ctx: BindingContext) => Command | null;
@@ -138,11 +140,28 @@ const switchPanel =
 
 const escape: Binding = () => ({ type: "Escape" });
 
+/** `y` for the copy, the way Vim yanks; `e` is what the action is called. */
+export const EXPORT_KEY = "y";
+export const COPY_PATH_KEY = "e";
+
+// Held down, these would write a file per repeat and litter the reviews
+// directory. Moving costs nothing on repeat; writing does.
+const exportReview: Binding = ({ repeat }) => (repeat ? null : { type: "ExportReview" });
+
+const copyPath: Binding = ({ repeat }) => (repeat ? null : { type: "CopyPath" });
+
 const GLOBAL_KEYMAP: PanelKeymap = {
   "1": switchPanel("tree"),
   "2": switchPanel("diff"),
   "3": switchPanel("comments"),
   Escape: escape,
+};
+
+/** Only in the review: the picker has nothing exported and nothing to export. */
+const TOOLBAR_KEYMAP: PanelKeymap = {
+  ...GLOBAL_KEYMAP,
+  [EXPORT_KEY]: exportReview,
+  [COPY_PATH_KEY]: copyPath,
 };
 
 /**
@@ -415,7 +434,7 @@ export function reviewKeymaps(
   return {
     ...folding,
     normal: {
-      global: GLOBAL_KEYMAP,
+      global: TOOLBAR_KEYMAP,
       panels: {
         ...folding.normal.panels,
         diff: diffNormal(diffNow),

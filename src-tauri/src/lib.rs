@@ -1,4 +1,5 @@
 pub mod cli;
+pub mod export;
 pub mod git;
 pub mod review;
 
@@ -23,6 +24,7 @@ pub fn run(startup: cli::Startup) -> Result<(), tauri::Error> {
             commands::read_blob,
             commands::load_review,
             commands::save_review,
+            commands::export_review,
         ])
         .run(tauri::generate_context!())
 }

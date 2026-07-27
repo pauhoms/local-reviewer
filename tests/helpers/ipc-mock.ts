@@ -21,6 +21,8 @@ export interface IpcFixture {
   blobs: Record<string, string>;
   /** Reviews already on disk, one per scope, the way `.state/` holds them. */
   reviews: Review[];
+  /** What `export_review` answers, one path per call; the last one repeats. */
+  exportPaths: string[];
 }
 
 function defaults(): IpcFixture {
@@ -32,10 +34,15 @@ function defaults(): IpcFixture {
     diff: [],
     blobs: {},
     reviews: [],
+    exportPaths: ["/home/dev/.claude/reviews/review-2026-07-26.md"],
   };
 }
 
 let fixture: IpcFixture = defaults();
+
+/** The system clipboard as far as the app can tell: write only, like the plugin. */
+let clipboard: string | null = null;
+let exportCount = 0;
 
 export const getStartup = vi.fn((): Promise<StartupInfo> => Promise.resolve(fixture.startup));
 
@@ -90,6 +97,19 @@ export const saveReview = vi.fn((review: Review): Promise<void> => {
   return Promise.resolve();
 });
 
+/** The backend picks the name: the front only ever sees the path it answers. */
+export const exportReview = vi.fn((_review: Review, _order: string[]): Promise<string> => {
+  const { exportPaths } = fixture;
+  const path = exportPaths[Math.min(exportCount, exportPaths.length - 1)];
+  exportCount += 1;
+  return Promise.resolve(path);
+});
+
+export const copyToClipboard = vi.fn((text: string): Promise<void> => {
+  clipboard = text;
+  return Promise.resolve();
+});
+
 const MOCKS = [
   getStartup,
   listRecents,
@@ -100,12 +120,21 @@ const MOCKS = [
   readBlob,
   loadReview,
   saveReview,
+  exportReview,
+  copyToClipboard,
 ];
 
 /** Resets every call log and replaces the fixture; call it before each render. */
 export function configureIpc(patch: Partial<IpcFixture> = {}): void {
   fixture = { ...defaults(), ...patch };
+  clipboard = null;
+  exportCount = 0;
   for (const mock of MOCKS) mock.mockClear();
+}
+
+/** What the user would paste, or `null` when nothing was ever copied. */
+export function clipboardText(): string | null {
+  return clipboard;
 }
 
 export function recentsInFixture(): string[] {
@@ -128,4 +157,6 @@ export const __clientContract: typeof Client = {
   readBlob,
   loadReview,
   saveReview,
+  exportReview,
+  copyToClipboard,
 };

@@ -12,6 +12,8 @@ export interface KeyEvent {
   meta: boolean;
   /** Milliseconds from whoever owns the clock; the machine never reads one itself. */
   at?: number;
+  /** True while a key is held down and the OS is repeating it. */
+  repeat?: boolean;
 }
 
 export type Command =
@@ -28,7 +30,9 @@ export type Command =
   | { type: "DeleteItem"; panel: Panel; index: number }
   | { type: "ToggleFold"; panel: Panel; index: number; open: boolean }
   | { type: "SetView"; view: DiffView }
-  | { type: "SetSide"; side: Side };
+  | { type: "SetSide"; side: Side }
+  | { type: "ExportReview" }
+  | { type: "CopyPath" };
 
 export interface PanelState {
   cursor: number;

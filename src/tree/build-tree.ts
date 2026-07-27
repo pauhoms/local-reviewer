@@ -115,6 +115,17 @@ export function flatten(nodes: readonly TreeNode[], collapsed: ReadonlySet<strin
   return rows;
 }
 
+/**
+ * Every file of the tree, in the order the tree lays them out. The folds are
+ * left out on purpose: what the export carries is the whole review, and a
+ * folder closed to read something else says nothing about it.
+ */
+export function filePaths(nodes: readonly TreeNode[]): string[] {
+  return flatten(nodes, new Set<string>()).flatMap((row) =>
+    row.node.kind === "file" ? [row.node.path] : [],
+  );
+}
+
 export function foldRows(rows: readonly FlatRow[]): FoldRow[] {
   const holders: number[] = [];
   return rows.map((row, index) => {

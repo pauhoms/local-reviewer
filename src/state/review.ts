@@ -25,6 +25,15 @@ export interface ReviewState {
   view: DiffView;
   /** Column the cursor is on in split: what `v` selects and what `c` anchors to. */
   side: Side;
+  /** Where the last export of this session landed, `null` before the first one.
+   *  Here and not in the toolbar: the key that copies it reads it the moment it
+   *  lands, and the key that exports may have just changed it. */
+  exportPath: string | null;
+  /** What went wrong exporting or copying, in the words the toolbar shows. */
+  toolbarError: string | null;
+  /** Whether `exportPath` is the text sitting in the clipboard. The clipboard is
+   *  write-only, so without this the reviewer has no way of telling `y` worked. */
+  copied: boolean;
 }
 
 export interface ReviewStore {
@@ -49,6 +58,12 @@ export interface ReviewStore {
   cancelEditing: () => void;
   removeComment: (id: string) => void;
   restoreComments: (comments: readonly ReviewComment[]) => void;
+  exported: (path: string) => void;
+  /** The path of an export that did work stays: its file is on disk, and the
+   *  reviewer needs to know which one is still the good one. */
+  exportFailed: (message: string) => void;
+  copied: () => void;
+  copyFailed: (message: string) => void;
 }
 
 export function commentCountsByPath(comments: readonly ReviewComment[]): Map<string, number> {
@@ -91,6 +106,9 @@ function emptyState(): ReviewState {
     foldedComments: NO_FOLDS,
     view: "unified",
     side: "new",
+    exportPath: null,
+    toolbarError: null,
+    copied: false,
   };
 }
 
@@ -184,6 +202,18 @@ export function createReviewStore(): ReviewStore {
       set(drop(id));
     },
     restoreComments: (comments) => set({ ...state, comments: [...comments], editing: null }),
+    exported: (path) => set({ ...state, exportPath: path, toolbarError: null, copied: false }),
+    exportFailed: (message) =>
+      set({
+        ...state,
+        toolbarError:
+          state.exportPath === null
+            ? message
+            : `${message} · la última exportada sigue siendo ${state.exportPath}`,
+        copied: false,
+      }),
+    copied: () => set({ ...state, toolbarError: null, copied: true }),
+    copyFailed: (message) => set({ ...state, toolbarError: message, copied: false }),
   };
 }
 

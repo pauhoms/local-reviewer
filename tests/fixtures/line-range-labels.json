@@ -1,0 +1,11 @@
+[
+  { "from": 35, "to": 35, "label": "Línea 35" },
+  { "from": 1, "to": 1, "label": "Línea 1" },
+  { "from": 0, "to": 0, "label": "Línea 0" },
+  { "from": 4294967295, "to": 4294967295, "label": "Línea 4294967295" },
+  { "from": 35, "to": 48, "label": "Líneas 35-48" },
+  { "from": 1, "to": 2, "label": "Líneas 1-2" },
+  { "from": 99, "to": 1000, "label": "Líneas 99-1000" },
+  { "from": 48, "to": 35, "label": "Líneas 35-48" },
+  { "from": 2, "to": 1, "label": "Líneas 1-2" }
+]

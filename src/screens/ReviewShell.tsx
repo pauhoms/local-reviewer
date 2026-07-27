@@ -4,6 +4,8 @@ import { anchorFor, diffLines, rowOfLine } from "@/diff/anchor";
 import { buildDiffRows } from "@/diff/rows";
 import { itemOfLine, lineOfItem, splitAnchor, splitLayout } from "@/diff/split-rows";
 import { DEFAULT_PAGE_SIZE, diffPage } from "@/diff/window";
+import { copyToClipboard, exportReview } from "@/ipc/client";
+import { errorMessage } from "@/ipc/errors";
 import type { DiffView, FileDiff, Scope, Side } from "@/ipc/types";
 import { reviewKeymaps } from "@/keys/keymap";
 import type { DiffMetrics } from "@/keys/keymap";
@@ -13,9 +15,16 @@ import CommentsPanel from "@/panels/CommentsPanel";
 import DiffPanel from "@/panels/DiffPanel";
 import TreePanel from "@/panels/TreePanel";
 import { startAutosave } from "@/state/persist";
-import { commentCountsByPath, reviewStore, selectedFile, useReviewState } from "@/state/review";
+import {
+  commentCountsByPath,
+  persistableReview,
+  reviewStore,
+  selectedFile,
+  useReviewState,
+} from "@/state/review";
 import type { ReviewComment } from "@/state/review";
-import { buildTree, diffTotals, flatten, foldRows } from "@/tree/build-tree";
+import Toolbar from "@/toolbar/Toolbar";
+import { buildTree, diffTotals, filePaths, flatten, foldRows } from "@/tree/build-tree";
 import type { FlatRow } from "@/tree/build-tree";
 import { basename } from "./paths";
 import { scopeLabel } from "./scope-label";
@@ -78,6 +87,31 @@ function viewLayout(view: DiffView, file: FileDiff | null): ViewLayout {
   return { itemRows: unified.lineRows, rowCount: unified.rows.length };
 }
 
+/**
+ * Both read the store and not this render: the key that asks for either may
+ * land in the same burst as the one that changed what it reads.
+ */
+function runExport(): void {
+  const state = reviewStore.getState();
+  const review = persistableReview(state);
+  if (review === null) return;
+  exportReview(review, filePaths(buildTree(state.files)))
+    .then((path) => reviewStore.exported(path))
+    .catch((error: unknown) =>
+      reviewStore.exportFailed(`No se pudo exportar la revisión: ${errorMessage(error)}`),
+    );
+}
+
+function runCopy(): void {
+  const { exportPath } = reviewStore.getState();
+  if (exportPath === null) return;
+  copyToClipboard(exportPath)
+    .then(() => reviewStore.copied())
+    .catch((error: unknown) =>
+      reviewStore.copyFailed(`No se pudo copiar la ruta: ${errorMessage(error)}`),
+    );
+}
+
 /** The cursor of one view read in the units of the other, keeping its line. */
 function movedTo(view: DiffView): { cursor: number; side: Side } {
   const { diffCursor, side } = reviewStore.getState();
@@ -100,6 +134,9 @@ export default function ReviewShell({ scope }: ReviewShellProps): JSX.Element {
     foldedComments,
     view,
     side,
+    exportPath,
+    toolbarError,
+    copied,
   } = useReviewState();
 
   // What the cursor walks: the folds and the file on show must not reset it.
@@ -232,6 +269,12 @@ export default function ReviewShell({ scope }: ReviewShellProps): JSX.Element {
             if (target) reviewStore.toggleCommentFold(target.id, command.open);
             break;
           }
+          case "ExportReview":
+            runExport();
+            break;
+          case "CopyPath":
+            runCopy();
+            break;
           default:
             break;
         }
@@ -268,6 +311,13 @@ export default function ReviewShell({ scope }: ReviewShellProps): JSX.Element {
         <span className="mode-indicator" data-mode={state.mode} aria-live="polite">
           {MODE_LABELS[state.mode]}
         </span>
+        <Toolbar
+          path={exportPath}
+          error={toolbarError}
+          copied={copied}
+          onExport={runExport}
+          onCopy={runCopy}
+        />
       </header>
       <div className="panels">
         <TreePanel

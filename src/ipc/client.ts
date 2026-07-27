@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import type {
   CommitInfo,
   DirEntryInfo,
@@ -45,4 +46,13 @@ export function loadReview(scope: Scope): Promise<Review | null> {
 
 export function saveReview(review: Review): Promise<void> {
   return invoke<void>("save_review", { review });
+}
+
+/** `order` is the paths of the tree; the answer is where the Markdown landed. */
+export function exportReview(review: Review, order: string[]): Promise<string> {
+  return invoke<string>("export_review", { review, order });
+}
+
+export function copyToClipboard(text: string): Promise<void> {
+  return writeText(text);
 }

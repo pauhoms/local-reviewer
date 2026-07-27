@@ -70,6 +70,64 @@ body {
   background: var(--accent-insert);
 }
 
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem 0.5rem;
+  max-width: 55%;
+}
+
+.toolbar-button {
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 3px;
+  color: var(--text);
+  background: var(--bg-panel-active);
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.toolbar-button:hover:enabled {
+  border-color: var(--border-active);
+}
+
+.toolbar-button:disabled {
+  color: var(--text-muted);
+  cursor: default;
+}
+
+.toolbar-button kbd {
+  font: inherit;
+  color: var(--text-muted);
+}
+
+.toolbar-copied {
+  font-size: 0.8rem;
+  color: var(--accent);
+}
+
+.toolbar-exported,
+.toolbar-error {
+  flex-basis: 100%;
+  margin: 0;
+  text-align: right;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.toolbar-path {
+  color: var(--accent);
+  /* The whole point of the line: it gets selected and pasted into Claude Code. */
+  user-select: all;
+}
+
+.toolbar-error {
+  color: var(--accent-delete);
+}
+
 .panels {
   display: grid;
   grid-template-columns: 1fr 2fr 1fr;

@@ -1,4 +1,5 @@
 use crate::cli::{self, Startup, StartupInfo};
+use crate::export;
 use crate::git::{self, CommitInfo, DirEntryInfo, FileDiff, Scope, Side};
 use crate::review::model::Review;
 use crate::review::{recents, store};
@@ -46,4 +47,11 @@ pub fn load_review(scope: Scope) -> Result<Option<Review>, String> {
 #[tauri::command]
 pub fn save_review(review: Review) -> Result<(), String> {
     store::save(&review).map_err(|e| e.to_string())
+}
+
+/// `order` is the paths of the tree, in the order the tree shows them; the
+/// answer is the absolute path of the Markdown that got written.
+#[tauri::command]
+pub fn export_review(review: Review, order: Vec<String>) -> Result<String, String> {
+    export::export(&review, &order).map_err(|e| e.to_string())
 }

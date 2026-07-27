@@ -39,6 +39,7 @@ function normalizeEvent(event: KeyboardEvent): KeyEvent {
     alt: event.altKey,
     meta: event.metaKey,
     at: event.timeStamp,
+    repeat: event.repeat,
   };
 }
 

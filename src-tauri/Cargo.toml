@@ -13,6 +13,9 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [], optional = true }
 
 [dependencies]
+# Only the clock: the export names its file after the reviewer's local day, and
+# `std` has no calendar to turn a timestamp into one.
+chrono = { version = "0.4.45", default-features = false, features = ["clock"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"

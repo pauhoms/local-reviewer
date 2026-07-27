@@ -149,15 +149,21 @@ function applyCommand(state: MachineState, command: Command): MachineState {
     case "DeleteItem":
     case "ToggleFold":
     case "SetSide":
+    case "ExportReview":
+    case "CopyPath":
       return state;
   }
 }
 
-function applyBinding(state: MachineState, binding: Binding | undefined): Step {
+function applyBinding(
+  state: MachineState,
+  binding: Binding | undefined,
+  repeat: boolean,
+): Step {
   if (!binding) return { state, commands: [] };
   const panel = state.activePanel;
   const panelState = state.panels[panel];
-  const command = binding({ panel, panelState, selection: state.selection });
+  const command = binding({ panel, panelState, selection: state.selection, repeat });
   if (!command) return { state, commands: [] };
   return { state: applyCommand(state, command), commands: [command] };
 }
@@ -181,7 +187,7 @@ function resolvePending(
   const { mode, activePanel } = cleared;
   const binding = lookupSequence(keymaps, mode, activePanel, prefix, keyId(event));
   if (!binding) return reduce(cleared, event, keymaps);
-  return applyBinding(cleared, binding);
+  return applyBinding(cleared, binding, event.repeat ?? false);
 }
 
 export function reduce(
@@ -205,7 +211,7 @@ export function reduce(
     return { state: { ...current, pending: id, pendingAt: event.at ?? null }, commands: [] };
   }
 
-  return applyBinding(current, lookupBinding(keymaps, mode, activePanel, id));
+  return applyBinding(current, lookupBinding(keymaps, mode, activePanel, id), event.repeat ?? false);
 }
 
 export { PANELS };
