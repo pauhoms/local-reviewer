@@ -9,7 +9,9 @@
   --accent: #58a6ff;
   --accent-visual: #d29922;
   --accent-insert: #3fb950;
+  --accent-delete: #f85149;
   --selection-bg: #1f3a5f;
+  --tree-indent: 0.9rem;
 }
 
 * {
@@ -123,6 +125,72 @@ body {
 /* Inside a visual range every line is selected; this is the one under the cursor. */
 .panel[data-active="true"] .panel-list li[data-cursor="true"] {
   box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.panel-subtitle,
+.tree-totals {
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--text-muted);
+}
+
+.panel-empty {
+  margin: 0.5rem 0;
+  padding: 0 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.panel-help {
+  margin-top: auto;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+}
+
+.tree-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
+.tree-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-status,
+.tree-counts {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+}
+
+.tree-status {
+  color: var(--accent);
+}
+
+.tree-status[data-status="A"] {
+  color: var(--accent-insert);
+}
+
+.tree-status[data-status="D"] {
+  color: var(--accent-delete);
+}
+
+.tree-status[data-status="R"] {
+  color: var(--accent-visual);
+}
+
+.tree-counts {
+  margin-left: auto;
+  color: var(--text-muted);
+}
+
+.tree-comments {
+  font-size: 0.75rem;
+  color: var(--accent-visual);
 }
 
 .scope-summary {

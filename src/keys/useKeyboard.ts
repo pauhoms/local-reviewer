@@ -36,6 +36,8 @@ function stealsBrowserDefault(event: KeyEvent): boolean {
   return event.ctrl && (event.key === "d" || event.key === "u");
 }
 
+type ListIds = Partial<Record<Panel, string | undefined>>;
+
 function applyConfig(state: MachineState, config: KeyboardConfig): MachineState {
   let next = state;
   for (const panel of PANELS) {
@@ -45,34 +47,50 @@ function applyConfig(state: MachineState, config: KeyboardConfig): MachineState 
   return next;
 }
 
+function syncConfig(state: MachineState, config: KeyboardConfig, listIds: ListIds): MachineState {
+  let next = applyConfig(state, config);
+  for (const panel of PANELS) {
+    const listId = config[panel].listId;
+    if (listId !== listIds[panel]) {
+      listIds[panel] = listId;
+      next = setCursor(next, panel, 0);
+    }
+  }
+  return next;
+}
+
 export function useKeyboard(
   config: KeyboardConfig,
   onCommands?: (commands: Command[]) => void,
   keymaps: Keymaps = DEFAULT_KEYMAPS,
 ): MachineState {
-  const [state, setState] = useState<MachineState>(() => applyConfig(initialState(), config));
-
   // The handler reduces off this ref, never inside the setState updater: React may
   // replay an updater, and replaying it would emit the same command twice.
-  const stateRef = useRef(state);
+  const stateRef = useRef<MachineState | null>(null);
+  if (stateRef.current === null) stateRef.current = applyConfig(initialState(), config);
+
   const onCommandsRef = useRef(onCommands);
   const keymapsRef = useRef(keymaps);
-  const listIdsRef = useRef<Partial<Record<Panel, string | undefined>>>({});
+  const listIdsRef = useRef<ListIds>({});
+  const [, bumpRender] = useState(0);
 
-  useEffect(() => {
-    onCommandsRef.current = onCommands;
-    keymapsRef.current = keymaps;
-  });
+  // Written while rendering, not from a passive effect. The rows a panel walks
+  // change as an answer to its own commands, so a key that lands before React
+  // flushes its effects would otherwise reduce against the previous render:
+  // the cursor would end up on one row and the diff panel on another file.
+  onCommandsRef.current = onCommands;
+  keymapsRef.current = keymaps;
+  stateRef.current = syncConfig(stateRef.current, config, listIdsRef.current);
 
   const commit = useCallback((next: MachineState): void => {
     stateRef.current = next;
-    setState(next);
+    bumpRender((tick) => tick + 1);
   }, []);
 
   useEffect(() => {
     function handleKeyDown(nativeEvent: KeyboardEvent): void {
       const event = normalizeEvent(nativeEvent);
-      const step = reduce(stateRef.current, event, keymapsRef.current);
+      const step = reduce(stateRef.current ?? initialState(), event, keymapsRef.current);
 
       // Only a key the machine actually answers is worth stealing: elsewhere the shortcut
       // would be inert *and* blocked, which is worse than leaving it to the browser.
@@ -89,29 +107,5 @@ export function useKeyboard(
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [commit]);
 
-  useEffect(() => {
-    let next = applyConfig(stateRef.current, config);
-    for (const panel of PANELS) {
-      const listId = config[panel].listId;
-      if (listId !== listIdsRef.current[panel]) {
-        listIdsRef.current[panel] = listId;
-        next = setCursor(next, panel, 0);
-      }
-    }
-    commit(next);
-    // Compared by value: an inline config literal would loop on identity.
-  }, [
-    commit,
-    config.tree.itemCount,
-    config.tree.pageSize,
-    config.tree.listId,
-    config.diff.itemCount,
-    config.diff.pageSize,
-    config.diff.listId,
-    config.comments.itemCount,
-    config.comments.pageSize,
-    config.comments.listId,
-  ]);
-
-  return state;
+  return stateRef.current;
 }

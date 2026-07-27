@@ -1,6 +1,17 @@
 import { selectionRange } from "./selection";
 import type { Command, Mode, Panel, PanelState, Selection } from "./types";
 
+/**
+ * What a foldable list says about one visible row: the panel state alone cannot
+ * tell whether `h` should close a folder or walk up to the one holding it.
+ */
+export interface FoldRow {
+  foldable: boolean;
+  expanded: boolean;
+  /** Index of the row that holds this one, `null` at the top level. */
+  parent: number | null;
+}
+
 export interface BindingContext {
   panel: Panel;
   panelState: PanelState;
@@ -132,6 +143,10 @@ const GLOBAL_KEYMAP: PanelKeymap = {
   Escape: escape,
 };
 
+/**
+ * `h`/`l` here are the fallback: `ReviewShell` always hands `foldingKeymaps`
+ * to the hook, and those rows read the tree on show. Keep the two in step.
+ */
 const NORMAL_PANELS: PanelKeymaps = {
   tree: {
     j: moveDown,
@@ -181,6 +196,63 @@ export const DEFAULT_KEYMAPS: Keymaps = {
   visual: { global: GLOBAL_KEYMAP, panels: VISUAL_PANELS },
   insert: { global: { Escape: escape }, panels: {} },
 };
+
+export type FoldRows = () => readonly FoldRow[];
+
+const closeOrUp =
+  (rowsNow: FoldRows): Binding =>
+  ({ panel, panelState }) => {
+    const row = rowsNow()[panelState.cursor];
+    if (!row) return null;
+    if (row.foldable && row.expanded) {
+      return { type: "ToggleFold", panel, index: panelState.cursor, open: false };
+    }
+    if (row.parent === null) return null;
+    return { type: "MoveCursor", panel, to: row.parent };
+  };
+
+const openFold =
+  (rowsNow: FoldRows): Binding =>
+  ({ panel, panelState }) => {
+    const row = rowsNow()[panelState.cursor];
+    if (!row || !row.foldable || row.expanded) return null;
+    return { type: "ToggleFold", panel, index: panelState.cursor, open: true };
+  };
+
+const confirmOrFold =
+  (rowsNow: FoldRows): Binding =>
+  ({ panel, panelState }) => {
+    const row = rowsNow()[panelState.cursor];
+    if (!row) return null;
+    // A folder has no diff to open, so Enter does there what a tree always does.
+    if (row.foldable) {
+      return { type: "ToggleFold", panel, index: panelState.cursor, open: !row.expanded };
+    }
+    return { type: "Confirm", panel, index: panelState.cursor };
+  };
+
+/**
+ * The tree tables. Rows arrive as a getter, not as a value: folding answers the
+ * very keys these bindings emit, so a burst of keys reaching the machine before
+ * React re-renders must still read the rows as they are, not as they were.
+ */
+export function foldingKeymaps(rowsNow: FoldRows): Keymaps {
+  return {
+    ...DEFAULT_KEYMAPS,
+    normal: {
+      global: GLOBAL_KEYMAP,
+      panels: {
+        ...NORMAL_PANELS,
+        tree: {
+          ...NORMAL_PANELS.tree,
+          h: closeOrUp(rowsNow),
+          l: openFold(rowsNow),
+          Enter: confirmOrFold(rowsNow),
+        },
+      },
+    },
+  };
+}
 
 /** The picker: three lists, one of which is a directory tree to walk. */
 const START_PANELS: PanelKeymaps = {

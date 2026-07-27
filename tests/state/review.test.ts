@@ -17,14 +17,16 @@ describe("review store", () => {
     expect(state.comments).toEqual([]);
   });
 
-  it("open takes in the scope with its files and selects the first one", () => {
+  it("open takes in the scope with its files and selects the first file of the tree", () => {
     const store = createReviewStore();
 
     store.open(SCOPE, sampleFiles);
 
     expect(store.getState().scope).toEqual(SCOPE);
     expect(store.getState().files).toEqual(sampleFiles);
-    expect(store.getState().selectedPath).toBe(sampleFiles[0].path);
+    // The tree sorts folders first, so the row the cursor starts on is not
+    // necessarily sampleFiles[0]; both must name the same file.
+    expect(store.getState().selectedPath).toBe("src/order/Order.ts");
   });
 
   it("opening another scope replaces the previous one instead of keeping both", () => {

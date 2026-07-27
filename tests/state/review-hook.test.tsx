@@ -43,7 +43,7 @@ describe("useReviewState", () => {
     expect(screen.getAllByRole("listitem").map((item) => item.textContent)).toEqual(
       sampleFiles.map((file) => file.path),
     );
-    expect(selected()).toBe(sampleFiles[0].path);
+    expect(selected()).toBe("src/order/Order.ts");
   });
 
   it("re-renders when the selected file changes", () => {
