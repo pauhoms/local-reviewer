@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { nextCommentId } from "@/comments/id";
 import { anchorFor, diffLines, rowOfLine } from "@/diff/anchor";
-import { countDiffLines } from "@/diff/rows";
-import { DEFAULT_PAGE_SIZE } from "@/diff/window";
-import type { Scope } from "@/ipc/types";
+import { buildDiffRows } from "@/diff/rows";
+import { itemOfLine, lineOfItem, splitAnchor, splitLayout } from "@/diff/split-rows";
+import { DEFAULT_PAGE_SIZE, diffPage } from "@/diff/window";
+import type { DiffView, FileDiff, Scope, Side } from "@/ipc/types";
 import { reviewKeymaps } from "@/keys/keymap";
 import type { DiffMetrics } from "@/keys/keymap";
 import type { Command, Mode } from "@/keys/types";
@@ -29,32 +30,84 @@ interface ReviewShellProps {
   scope: Scope;
 }
 
-/** The comment the `c` key just anchored, or `null` when the range holds no line. */
-function commentForRange(from: number, to: number): ReviewComment | null {
+/** The file the diff panel is showing right now, whatever the last render saw. */
+function fileNow(): FileDiff | null {
   const { files, selectedPath } = reviewStore.getState();
-  const file = selectedFile(files, selectedPath);
+  return selectedFile(files, selectedPath);
+}
+
+/**
+ * The comment the `c` key just anchored, or `null` when the range holds no line
+ * on the side it would anchor to — which in split is the active column.
+ */
+function commentForRange(from: number, to: number): ReviewComment | null {
+  const { view, side } = reviewStore.getState();
+  const file = fileNow();
   if (!file) return null;
-  const anchor = anchorFor(diffLines(file), from, to);
+  const anchor =
+    view === "split"
+      ? splitAnchor(splitLayout(file), side, from, to)
+      : anchorFor(diffLines(file), from, to);
   if (!anchor) return null;
   return { id: nextCommentId(), path: file.path, text: "", ...anchor };
 }
 
-/** Row the diff has to land on to show the line a comment is anchored to. */
-function rowOfComment(comment: ReviewComment): number {
+/** Where the diff has to land to show the line a comment is anchored to. */
+function placeOfComment(comment: ReviewComment): { cursor: number; side: Side } {
   const file = selectedFile(reviewStore.getState().files, comment.path);
-  if (!file) return 0;
-  return rowOfLine(diffLines(file), comment.side, comment.from);
+  if (!file) return { cursor: 0, side: comment.side };
+  const line = rowOfLine(diffLines(file), comment.side, comment.from);
+  if (reviewStore.getState().view !== "split") return { cursor: line, side: comment.side };
+  const landed = itemOfLine(splitLayout(file), line, comment.side);
+  return { cursor: landed.item, side: landed.side };
+}
+
+interface ViewLayout {
+  /** Row each item sits on, so `itemRows.length` is what the cursor walks. */
+  itemRows: readonly number[];
+  rowCount: number;
+}
+
+/** What the cursor walks and what the viewport scrolls, in the view on show. */
+function viewLayout(view: DiffView, file: FileDiff | null): ViewLayout {
+  if (view === "split") {
+    const layout = splitLayout(file);
+    return { itemRows: layout.itemRows, rowCount: layout.rows.length };
+  }
+  const unified = buildDiffRows(file);
+  return { itemRows: unified.lineRows, rowCount: unified.rows.length };
+}
+
+/** The cursor of one view read in the units of the other, keeping its line. */
+function movedTo(view: DiffView): { cursor: number; side: Side } {
+  const { diffCursor, side } = reviewStore.getState();
+  const layout = splitLayout(fileNow());
+  if (view === "split") {
+    const landed = itemOfLine(layout, diffCursor, side);
+    return { cursor: landed.item, side: landed.side };
+  }
+  return { cursor: lineOfItem(layout, diffCursor, side), side };
 }
 
 export default function ReviewShell({ scope }: ReviewShellProps): JSX.Element {
-  const { files, comments, selectedPath, collapsed, diffCursor, editing, foldedComments } =
-    useReviewState();
+  const {
+    files,
+    comments,
+    selectedPath,
+    collapsed,
+    diffCursor,
+    editing,
+    foldedComments,
+    view,
+    side,
+  } = useReviewState();
 
   // What the cursor walks: the folds and the file on show must not reset it.
   const listId = useMemo(() => files.map((file) => file.path).join("\n"), [files]);
 
   const file = useMemo(() => selectedFile(files, selectedPath), [files, selectedPath]);
-  const diffLineCount = useMemo(() => countDiffLines(file), [file]);
+  // What the diff cursor walks: lines in the unified view, rows in the split one.
+  const diffItemCount = useMemo(() => viewLayout(view, file).itemRows.length, [view, file]);
 
   const tree = useMemo(() => buildTree(files), [files]);
   const rows = useMemo(() => flatten(tree, collapsed), [tree, collapsed]);
@@ -78,19 +131,33 @@ export default function ReviewShell({ scope }: ReviewShellProps): JSX.Element {
     [],
   );
   // Same reason for the diff: opening another file changes the lines the next
-  // key walks, and a resize changes what half a page means.
-  const pageSizeRef = useRef(DEFAULT_PAGE_SIZE);
-  const [diffPageSize, setDiffPageSize] = useState(DEFAULT_PAGE_SIZE);
-  const handlePageSize = useCallback((size: number): void => {
-    pageSizeRef.current = size;
-    setDiffPageSize(size);
+  // key walks, and a resize changes what half a page means. Only the geometry
+  // of the viewport is kept, in rows: how many items a page holds is worked out
+  // against the view of the moment, which `Ctrl+w v` changes mid-burst.
+  const viewportRef = useRef({ pageRows: DEFAULT_PAGE_SIZE, topRow: 0 });
+  const handleViewport = useCallback((pageRows: number, topRow: number): void => {
+    viewportRef.current = { pageRows, topRow };
   }, []);
   const diffNow = useCallback((): DiffMetrics => {
-    const { files: known, selectedPath: shown } = reviewStore.getState();
-    return {
-      lineCount: countDiffLines(selectedFile(known, shown)),
-      pageSize: pageSizeRef.current,
+    const { view: on, side: column, diffCursor: cursor } = reviewStore.getState();
+    const shown = fileNow();
+    const layout = viewLayout(on, shown);
+    const { pageRows, topRow } = viewportRef.current;
+    const page = diffPage(layout.itemRows, {
+      rowCount: layout.rowCount,
+      pageSize: pageRows,
+      cursor,
+      offset: topRow,
+    });
+    const metrics: DiffMetrics = {
+      lineCount: layout.itemRows.length,
+      pageSize: page.itemCount,
+      view: on,
+      side: column,
     };
+    if (on !== "split") return metrics;
+    const split = splitLayout(shown);
+    return { ...metrics, anchored: (from, to) => splitAnchor(split, column, from, to) !== null };
   }, []);
   // And for panel 3: `dd` shortens the very list the next key of the burst walks.
   const commentsNow = useCallback((): number => reviewStore.getState().comments.length, []);
@@ -119,6 +186,16 @@ export default function ReviewShell({ scope }: ReviewShellProps): JSX.Element {
           case "SaveComment":
             reviewStore.saveEditing();
             break;
+          // Changing view is one move: the cursor arrives already read in the
+          // units of the view that opens, on the column the line lives on.
+          case "SetView": {
+            const landed = movedTo(command.view);
+            reviewStore.setView(command.view, landed.cursor, landed.side);
+            break;
+          }
+          case "SetSide":
+            reviewStore.setSide(command.side);
+            break;
           // Leaving insert throws away the comment that was being written; in
           // any other mode there is none, and this is a no-op.
           case "Escape":
@@ -132,7 +209,10 @@ export default function ReviewShell({ scope }: ReviewShellProps): JSX.Element {
             }
             if (command.panel !== "comments") break;
             const target = reviewStore.getState().comments[command.index];
-            if (target) reviewStore.openAt(target.path, rowOfComment(target));
+            if (target) {
+              const place = placeOfComment(target);
+              reviewStore.openAt(target.path, place.cursor, place.side);
+            }
             break;
           }
           case "DeleteItem": {
@@ -164,8 +244,10 @@ export default function ReviewShell({ scope }: ReviewShellProps): JSX.Element {
     {
       tree: { itemCount: rows.length, pageSize: rows.length, listId },
       diff: {
-        itemCount: diffLineCount,
-        pageSize: diffPageSize,
+        itemCount: diffItemCount,
+        // The diff tables halve the page they read from `diffNow`, never this
+        // one; it is here so the machine's own idea of the panel is not a lie.
+        pageSize: diffNow().pageSize,
         cursorNow: () => reviewStore.getState().diffCursor,
       },
       comments: { itemCount: comments.length, pageSize: comments.length },
@@ -202,7 +284,9 @@ export default function ReviewShell({ scope }: ReviewShellProps): JSX.Element {
           cursor={diffCursor}
           active={state.activePanel === "diff"}
           range={state.activePanel === "diff" ? range : null}
-          onPageSize={handlePageSize}
+          view={view}
+          side={side}
+          onViewport={handleViewport}
         />
         <CommentsPanel
           comments={comments}

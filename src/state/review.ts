@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import type { Comment, DiffView, FileDiff, Review, Scope } from "@/ipc/types";
+import type { Comment, DiffView, FileDiff, Review, Scope, Side } from "@/ipc/types";
 import { buildTree, flatten } from "@/tree/build-tree";
 
 export type ReviewComment = Comment;
@@ -21,18 +21,25 @@ export interface ReviewState {
   collapsed: ReadonlySet<string>;
   /** Same reason as `collapsed`, for the entries of panel 3. */
   foldedComments: ReadonlySet<string>;
+  /** How the diff is being read; in split it also decides what `diffCursor` counts. */
   view: DiffView;
+  /** Column the cursor is on in split: what `v` selects and what `c` anchors to. */
+  side: Side;
 }
 
 export interface ReviewStore {
   getState: () => ReviewState;
   subscribe: (listener: () => void) => () => void;
-  open: (scope: Scope, files: FileDiff[]) => void;
+  open: (scope: Scope, files: FileDiff[], view?: DiffView) => void;
   selectFile: (path: string) => void;
   setDiffCursor: (line: number) => void;
   /** Opening a file and landing on one of its lines is a single move: two would
    *  let the key after it read the cursor of the file that just closed. */
-  openAt: (path: string, line: number) => void;
+  openAt: (path: string, line: number, side?: Side) => void;
+  /** Same reason: the view decides what the cursor counts, so it travels with
+   *  the line it lands on and with the column that line lives on. */
+  setView: (view: DiffView, cursor: number, side: Side) => void;
+  setSide: (side: Side) => void;
   toggleFold: (path: string, open: boolean) => void;
   toggleCommentFold: (id: string, open: boolean) => void;
   addComment: (comment: ReviewComment) => void;
@@ -83,6 +90,7 @@ function emptyState(): ReviewState {
     collapsed: NO_FOLDS,
     foldedComments: NO_FOLDS,
     view: "unified",
+    side: "new",
   };
 }
 
@@ -131,16 +139,19 @@ export function createReviewStore(): ReviewStore {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
-    open: (scope, files) => {
+    open: (scope, files, view = "unified") => {
       // Comments belong to the review that is closing, not to the one opening.
-      set({ ...emptyState(), scope, files, selectedPath: firstFileOfTree(files) });
+      set({ ...emptyState(), scope, files, selectedPath: firstFileOfTree(files), view });
     },
     selectFile: (path) => {
       // The line of the file that closes means nothing in the one that opens.
       set({ ...state, selectedPath: path, diffCursor: 0 });
     },
     setDiffCursor: (line) => set({ ...state, diffCursor: line }),
-    openAt: (path, line) => set({ ...state, selectedPath: path, diffCursor: line }),
+    openAt: (path, line, side = state.side) =>
+      set({ ...state, selectedPath: path, diffCursor: line, side }),
+    setView: (view, cursor, side) => set({ ...state, view, diffCursor: cursor, side }),
+    setSide: (side) => set({ ...state, side }),
     toggleFold: (path, open) => set({ ...state, collapsed: withFold(state.collapsed, path, open) }),
     toggleCommentFold: (id, open) =>
       set({ ...state, foldedComments: withFold(state.foldedComments, id, open) }),

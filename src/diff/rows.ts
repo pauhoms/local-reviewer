@@ -1,4 +1,10 @@
-import type { FileDiff, Line } from "@/ipc/types";
+import type { FileDiff, Line, LineKind } from "@/ipc/types";
+
+const MARKERS: Record<LineKind, string> = {
+  add: "+",
+  del: "-",
+  context: " ",
+};
 
 export type DiffRow =
   | { kind: "header"; header: string }
@@ -10,10 +16,25 @@ export interface DiffRows {
   lineRows: number[];
 }
 
+/**
+ * Kept per file: every key press asks how many rows the diff has, and laying
+ * out a hundred thousand lines again on each of them is not worth the memory
+ * it saves.
+ */
+const built = new WeakMap<FileDiff, DiffRows>();
+
 export function buildDiffRows(file: FileDiff | null): DiffRows {
+  if (!file) return { rows: [], lineRows: [] };
+  const known = built.get(file);
+  if (known) return known;
+  const laid = layOut(file);
+  built.set(file, laid);
+  return laid;
+}
+
+function layOut(file: FileDiff): DiffRows {
   const rows: DiffRow[] = [];
   const lineRows: number[] = [];
-  if (!file) return { rows, lineRows };
 
   for (const hunk of file.hunks) {
     if (hunk.lines.length === 0) continue;
@@ -33,4 +54,8 @@ export function countDiffLines(file: FileDiff | null): number {
 
 export function lineBody(content: string): string {
   return content.endsWith("\r") ? content.slice(0, -1) : content;
+}
+
+export function lineMarker(kind: LineKind): string {
+  return MARKERS[kind];
 }

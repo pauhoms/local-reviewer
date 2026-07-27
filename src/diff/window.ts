@@ -98,6 +98,30 @@ export function linesInWindow(
   return { first: firstLine, last: lastLine };
 }
 
+export interface DiffPage {
+  /** Rows the viewport shows, both ends included. */
+  visible: IndexWindow;
+  /** Items those rows hold whole. */
+  items: IndexWindow;
+  /** How many, never zero: half of it is what Ctrl+d walks. */
+  itemCount: number;
+}
+
+/**
+ * The page on show, asked for once. The panel paints it and the keyboard halves
+ * it, so both read it from here: a page counted twice is a page counted two
+ * ways, and then Ctrl+d lands somewhere the reader cannot see.
+ */
+export function diffPage(lineRows: readonly number[], input: RowWindowInput): DiffPage {
+  const visible = rowWindow(lineRows, input);
+  const items = linesInWindow(lineRows, visible);
+  return {
+    visible,
+    items,
+    itemCount: lineRows.length === 0 ? 1 : items.last - items.first + 1,
+  };
+}
+
 /**
  * A margin of rows above and below keeps a slow scroll from showing the gap
  * before React fills it.

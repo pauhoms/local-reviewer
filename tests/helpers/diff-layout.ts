@@ -6,14 +6,15 @@
  * the `--diff-line-height` custom property — and lets a test resize it.
  *
  * The contract it assumes: the scroll container carries `data-diff-viewport`, and
- * the rows carry `data-line-index` (diff lines) or `data-hunk-header` (separators).
+ * the rows carry `data-line-index` (diff lines), `data-split-row` (the rows of the
+ * split view) or `data-hunk-header` (separators).
  */
 
 export const ROW_HEIGHT = 24;
 export const VIEWPORT_HEIGHT = 480;
 
 const VIEWPORT_SELECTOR = "[data-diff-viewport]";
-const ROW_SELECTOR = "[data-line-index], [data-hunk-header]";
+const ROW_SELECTOR = "[data-line-index], [data-split-row], [data-hunk-header]";
 
 let viewportHeight = 0;
 let installed = false;

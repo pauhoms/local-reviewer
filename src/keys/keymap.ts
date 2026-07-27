@@ -1,3 +1,4 @@
+import type { DiffView, Side } from "@/ipc/types";
 import { selectionRange } from "./selection";
 import type { Command, Mode, Panel, PanelState, Selection } from "./types";
 
@@ -266,10 +267,17 @@ export function foldingKeymaps(rowsNow: FoldRows): Keymaps {
   };
 }
 
-/** What the diff panel is showing right now: lines in the file and lines on show. */
+/** What the diff panel is showing right now, counted in whatever its view walks. */
 export interface DiffMetrics {
+  /** Items the cursor walks: lines in the unified view, rows in the split one. */
   lineCount: number;
   pageSize: number;
+  view?: DiffView;
+  /** Column the cursor is on; only the split view has two to choose from. */
+  side?: Side;
+  /** Whether a range of items holds any line of the active side to anchor to.
+   *  Absent in the unified view, where every line of the range anchors. */
+  anchored?: (from: number, to: number) => boolean;
 }
 
 export type DiffMetricsNow = () => DiffMetrics;
@@ -299,6 +307,41 @@ const diffExtend =
 /** Never zero: a viewport too short to halve would leave Ctrl+d dead. */
 const halfPage = (metrics: DiffMetrics): number => Math.max(1, Math.floor(metrics.pageSize / 2));
 
+const viewOf = (metrics: DiffMetrics): DiffView => metrics.view ?? "unified";
+
+const sideOf = (metrics: DiffMetrics): Side => metrics.side ?? "new";
+
+/** Asking for the view already on show is not a move, and would drag the cursor. */
+const setView =
+  (metricsNow: DiffMetricsNow, view: DiffView): Binding =>
+  () =>
+    viewOf(metricsNow()) === view ? null : { type: "SetView", view };
+
+/** Outside the split there is only one column, so there is no side to choose. */
+const setSide =
+  (metricsNow: DiffMetricsNow, side: Side): Binding =>
+  () => {
+    const metrics = metricsNow();
+    if (viewOf(metrics) !== "split" || sideOf(metrics) === side) return null;
+    return { type: "SetSide", side };
+  };
+
+/**
+ * The window keys of Vim, because a split view is literally two windows. `h`
+ * and `l` on their own do the same: in a read-only viewer they have no other
+ * useful meaning, and that way changing column costs one key.
+ */
+function windowKeys(metricsNow: DiffMetricsNow): PanelKeymap {
+  return {
+    "Ctrl+w v": setView(metricsNow, "split"),
+    "Ctrl+w o": setView(metricsNow, "unified"),
+    "Ctrl+w h": setSide(metricsNow, "old"),
+    "Ctrl+w l": setSide(metricsNow, "new"),
+    h: setSide(metricsNow, "old"),
+    l: setSide(metricsNow, "new"),
+  };
+}
+
 function diffNormal(metricsNow: DiffMetricsNow): PanelKeymap {
   return {
     j: diffMove(metricsNow, () => 1),
@@ -308,16 +351,29 @@ function diffNormal(metricsNow: DiffMetricsNow): PanelKeymap {
     "Ctrl+d": diffMove(metricsNow, halfPage),
     "Ctrl+u": diffMove(metricsNow, (metrics) => -halfPage(metrics)),
     v: enterVisual,
+    ...windowKeys(metricsNow),
   };
 }
 
+/** A comment that anchors to nothing would still drag the keyboard into the editor. */
+function anchors(metrics: DiffMetrics, selection: Selection | null): boolean {
+  if (metrics.lineCount === 0 || selection === null) return false;
+  const { from, to } = selectionRange(selection);
+  return metrics.anchored?.(from, to) ?? true;
+}
+
+/**
+ * The window keys answer here too, the way Vim takes `Ctrl+W` in visual: a
+ * reader with a range open must not have to cancel it to leave the split.
+ * Changing column keeps the range, which counts the same rows on either side;
+ * changing view closes it, and that is the machine's doing.
+ */
 function diffVisual(metricsNow: DiffMetricsNow): PanelKeymap {
   return {
     j: diffExtend(metricsNow, 1),
     k: diffExtend(metricsNow, -1),
-    // A file with no lines on show has nothing to anchor to, and a comment that
-    // anchors to nothing would still drag the keyboard into the editor.
-    c: (ctx) => (metricsNow().lineCount === 0 ? null : createComment(ctx)),
+    c: (ctx) => (anchors(metricsNow(), ctx.selection) ? createComment(ctx) : null),
+    ...windowKeys(metricsNow),
   };
 }
 

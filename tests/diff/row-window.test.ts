@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { linesInWindow, rowWindow } from "@/diff/window";
+import { diffPage, linesInWindow, rowWindow } from "@/diff/window";
 
 /** Three hunks of three lines: 0 header, 1-3 lines, 4 header, 5-7 lines, 8 header, 9-11 lines. */
 const LINE_ROWS = [1, 2, 3, 5, 6, 7, 9, 10, 11];
@@ -58,5 +58,35 @@ describe("the lines on show are the ones whose row is inside the window", () => 
 
   it("answers the first line for a file with no lines at all", () => {
     expect(linesInWindow([], { first: 0, last: 4 })).toEqual({ first: 0, last: 0 });
+  });
+});
+
+/**
+ * One page, asked for once: the panel paints it and the keyboard halves it, and
+ * the two must be counting the same thing or Ctrl+d lands off the screen.
+ */
+describe("the page holds the rows on show and the items inside them", () => {
+  function pageOf(pageSize: number, cursor: number, offset: number) {
+    return diffPage(LINE_ROWS, { rowCount: ROW_COUNT, pageSize, cursor, offset });
+  }
+
+  it("counts the items of the window, headers taking their share of the rows", () => {
+    const page = pageOf(4, 0, 0);
+
+    expect(page.visible).toEqual({ first: 0, last: 3 });
+    expect(page.items).toEqual({ first: 0, last: 2 });
+    expect(page.itemCount).toBe(3);
+  });
+
+  it("counts the two headers a longer window swallows on the way down", () => {
+    const page = pageOf(6, 4, 4);
+
+    expect(page.visible).toEqual({ first: 4, last: 9 });
+    expect(page.itemCount).toBe(4);
+  });
+
+  it("holds one item at the very least, however little there is to show", () => {
+    expect(diffPage([], { rowCount: 0, pageSize: 4, cursor: 0, offset: 0 }).itemCount).toBe(1);
+    expect(pageOf(1, 6, 0).itemCount).toBe(1);
   });
 });

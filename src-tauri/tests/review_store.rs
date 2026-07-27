@@ -13,7 +13,7 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Mutex;
 
 use reviewv4_lib::git::{Scope, Side};
-use reviewv4_lib::review::model::{Comment, Review};
+use reviewv4_lib::review::model::{Comment, DiffView, Review};
 use reviewv4_lib::review::store::{load, save, scope_key};
 use reviewv4_lib::review::ReviewError;
 use serde_json::{json, Value};
@@ -93,7 +93,7 @@ fn review(scope: Scope, comments: Vec<Comment>) -> Review {
     Review {
         scope,
         comments,
-        view: "unified".to_string(),
+        view: DiffView::Unified,
     }
 }
 

@@ -1,3 +1,5 @@
+import type { DiffView, Side } from "@/ipc/types";
+
 export type Mode = "normal" | "visual" | "insert";
 
 export type Panel = "tree" | "diff" | "comments";
@@ -24,7 +26,9 @@ export type Command =
   | { type: "Descend"; panel: Panel; index: number }
   | { type: "Ascend"; panel: Panel }
   | { type: "DeleteItem"; panel: Panel; index: number }
-  | { type: "ToggleFold"; panel: Panel; index: number; open: boolean };
+  | { type: "ToggleFold"; panel: Panel; index: number; open: boolean }
+  | { type: "SetView"; view: DiffView }
+  | { type: "SetSide"; side: Side };
 
 export interface PanelState {
   cursor: number;

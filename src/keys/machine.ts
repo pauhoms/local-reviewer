@@ -136,11 +136,19 @@ function applyCommand(state: MachineState, command: Command): MachineState {
         activePanel: "comments",
         insertOrigin: command.panel,
       });
+    // A range is drawn in the units of the view it was drawn in — lines in
+    // unified, rows in split — so the other view would paint it over lines
+    // nobody chose. Changing view ends the selection; changing column does not.
+    case "SetView":
+      return state.mode === "visual" ? { ...state, mode: "normal", selection: null } : state;
+    // The side and the lists these walk belong to whoever owns them; the machine
+    // only carries the order to the panel that does.
     case "Confirm":
     case "Descend":
     case "Ascend":
     case "DeleteItem":
     case "ToggleFold":
+    case "SetSide":
       return state;
   }
 }

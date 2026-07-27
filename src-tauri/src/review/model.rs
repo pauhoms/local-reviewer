@@ -16,12 +16,22 @@ pub struct Comment {
     pub text: String,
 }
 
+/// How the diff was being read. A closed union, the mirror of `DiffView` in
+/// `src/ipc/types.ts`: a hand-edited state file naming anything else is not a
+/// review this app wrote, and the webview would not know what to do with it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum DiffView {
+    Unified,
+    Split,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Review {
     pub scope: Scope,
     pub comments: Vec<Comment>,
-    /// `unified` or `split`; the diff panel owns the meaning, the store only
-    /// carries it so reopening a scope lands on the view it was left in.
-    pub view: String,
+    /// The store only carries it, so reopening a scope lands on the view it was
+    /// left in; the diff panel owns the meaning.
+    pub view: DiffView,
 }

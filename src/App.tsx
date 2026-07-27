@@ -49,7 +49,9 @@ export default function App(): JSX.Element {
         // Only a review that opened belongs in the recents, and best effort at
         // that: a repo the app cannot remember is still perfectly reviewable.
         recordRecent(chosen.repo).catch(() => undefined);
-        reviewStore.open(chosen, files);
+        // The view the review was left in is part of it: reopening a scope has
+        // to land on the way it was being read.
+        reviewStore.open(chosen, files, saved?.view);
         if (files.length === 0) {
           setRoute({ view: "empty" });
           return;

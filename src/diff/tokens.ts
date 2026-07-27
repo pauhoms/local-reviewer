@@ -22,10 +22,20 @@ function matches(tokens: Token[] | null, body: string): boolean {
 /**
  * The body on show always comes from the diff; the blob only lends its colours,
  * and only when both say the same thing — the file may have moved since.
+ *
+ * `preferred` is the column asking, when there is one: the same context line
+ * shows on both sides of the split and a grammar that diverges between the two
+ * blobs colours it differently, so each cell has to read its own file first.
  */
-export function tokensForLine(line: Line, body: string, tokens: FileTokens | null): Token[] | null {
+export function tokensForLine(
+  line: Line,
+  body: string,
+  tokens: FileTokens | null,
+  preferred?: Side,
+): Token[] | null {
   if (!tokens) return null;
-  const sides: Side[] = line.newNo !== null ? ["new", "old"] : ["old", "new"];
+  const first = preferred ?? (line.newNo !== null ? "new" : "old");
+  const sides: Side[] = first === "new" ? ["new", "old"] : ["old", "new"];
   for (const side of sides) {
     const candidate = lineAt(tokens[side], numberOn(line, side));
     if (matches(candidate, body)) return candidate;

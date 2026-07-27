@@ -16,9 +16,9 @@ interface VirtualListProps {
   firstRow: number;
   /** Row the viewport is scrolled to, so the cursor stays on screen. */
   scrollRow: number;
-  /** Lines on show and how many of them fit, for whoever asks the DOM. */
-  lines: IndexWindow;
-  linesPerPage: number;
+  /** Items on show and how many of them fit, for whoever asks the DOM. */
+  items: IndexWindow;
+  itemsPerPage: number;
   onRowsPerPage: (rows: number) => void;
   onTopRow: (row: number) => void;
   children: ReactNode;
@@ -32,7 +32,7 @@ function cssRowHeight(node: HTMLElement): number {
 }
 
 function measure(node: HTMLElement): Metrics | null {
-  const row = node.querySelector<HTMLElement>("[data-line-index]");
+  const row = node.querySelector<HTMLElement>("[data-split-row], [data-line-index]");
   const rowHeight = row?.getBoundingClientRect().height || cssRowHeight(node);
   const height = node.clientHeight || node.getBoundingClientRect().height;
   if (rowHeight <= 0 || height <= 0) return null;
@@ -43,8 +43,8 @@ export default function VirtualList({
   rowCount,
   firstRow,
   scrollRow,
-  lines,
-  linesPerPage,
+  items,
+  itemsPerPage,
   onRowsPerPage,
   onTopRow,
   children,
@@ -112,9 +112,9 @@ export default function VirtualList({
       ref={viewportRef}
       className="diff-viewport"
       data-diff-viewport=""
-      data-page-size={linesPerPage}
-      data-first-visible={lines.first}
-      data-last-visible={lines.last}
+      data-page-size={itemsPerPage}
+      data-first-visible={items.first}
+      data-last-visible={items.last}
       onScroll={handleScroll}
     >
       <div className="diff-sizer" style={{ height: `${rowCount * rowHeight}px` }}>

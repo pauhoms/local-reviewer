@@ -1,12 +1,7 @@
-import { lineBody } from "@/diff/rows";
+import { lineBody, lineMarker } from "@/diff/rows";
 import type { Token } from "@/highlight/shiki";
-import type { Line, LineKind } from "@/ipc/types";
-
-const MARKERS: Record<LineKind, string> = {
-  add: "+",
-  del: "-",
-  context: " ",
-};
+import type { Line } from "@/ipc/types";
+import TokenText from "./TokenText";
 
 interface DiffLineProps {
   line: Line;
@@ -14,15 +9,6 @@ interface DiffLineProps {
   cursor: boolean;
   selected: boolean;
   tokens: Token[] | null;
-}
-
-function body(tokens: Token[] | null, text: string): JSX.Element[] | string {
-  if (!tokens) return text;
-  return tokens.map((token, position) => (
-    <span key={position} style={token.color ? { color: token.color } : undefined}>
-      {token.content}
-    </span>
-  ));
 }
 
 export default function DiffLine({
@@ -48,10 +34,10 @@ export default function DiffLine({
         {line.newNo ?? ""}
       </span>
       <span className="diff-marker" data-line-marker="">
-        {MARKERS[line.kind]}
+        {lineMarker(line.kind)}
       </span>
       <code className="diff-content" data-line-content="">
-        {body(tokens, lineBody(line.content))}
+        <TokenText tokens={tokens} text={lineBody(line.content)} />
       </code>
     </li>
   );

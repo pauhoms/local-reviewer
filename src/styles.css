@@ -280,7 +280,80 @@ body {
   text-overflow: ellipsis;
 }
 
+.split-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+
+.split-column {
+  padding: 0.15rem 0.5rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.split-column[data-active="true"] {
+  color: var(--accent);
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+
+.split-column-mark {
+  letter-spacing: 0;
+}
+
+.split-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  height: var(--diff-line-height);
+}
+
+.split-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  overflow: hidden;
+  padding: 0 0.5rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+  line-height: var(--diff-line-height);
+}
+
+.split-cell[data-kind="add"] {
+  background: var(--diff-add-bg);
+}
+
+.split-cell[data-kind="del"] {
+  background: var(--diff-del-bg);
+}
+
+.split-gap {
+  background: var(--bg-panel);
+}
+
+/* After the add/del rules on purpose: the range on show wins over the kind. */
+.split-cell[aria-selected="true"] {
+  background: var(--selection-bg);
+  color: var(--text);
+}
+
+.panel[data-active="true"] .split-cell[data-cursor="true"] {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.split-cell[data-kind="add"] .diff-marker {
+  color: var(--diff-add-marker);
+}
+
+.split-cell[data-kind="del"] .diff-marker {
+  color: var(--diff-del-marker);
+}
+
 .diff-position,
+.diff-view,
 .comment-position {
   font-weight: 400;
   letter-spacing: 0;

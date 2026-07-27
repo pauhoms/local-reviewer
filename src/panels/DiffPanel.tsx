@@ -1,21 +1,33 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { buildDiffRows, lineBody } from "@/diff/rows";
-import { tokensForLine } from "@/diff/tokens";
+import { buildDiffRows } from "@/diff/rows";
+import { splitLayout } from "@/diff/split-rows";
 import type { FileTokens } from "@/diff/tokens";
-import { DEFAULT_PAGE_SIZE, linesInWindow, mountedRows, OVERSCAN, rowWindow } from "@/diff/window";
+import { DEFAULT_PAGE_SIZE, diffPage, mountedRows, OVERSCAN } from "@/diff/window";
 import { languageOf, tokenizeFile } from "@/highlight/shiki";
 import type { Token } from "@/highlight/shiki";
 import { readBlob } from "@/ipc/client";
-import type { FileDiff, Scope, Side } from "@/ipc/types";
-import { selectionRange } from "@/keys/selection";
+import type { DiffView, FileDiff, Scope, Side } from "@/ipc/types";
 import type { Selection } from "@/keys/types";
-import DiffLine from "./DiffLine";
+import SplitDiff from "./SplitDiff";
+import UnifiedDiff from "./UnifiedDiff";
 import VirtualList from "./VirtualList";
 
 const TITLE = "2 DIFF";
 
 const NO_LINES = "Sin líneas que mostrar.";
 const NOT_IN_DIFF = "El fichero seleccionado no está en los cambios.";
+
+const SIDE_LABELS: Record<Side, string> = { old: "OLD", new: "NEW" };
+
+/** Left to right, the way the mockup draws them. */
+const COLUMNS: Side[] = ["old", "new"];
+
+const HELP: Record<DiffView, string> = {
+  unified:
+    "j/k línea · gg/G extremos · Ctrl+d/Ctrl+u media página · v seleccionar · c comentar · Ctrl+w v partir",
+  split:
+    "j/k fila · h/l lado · gg/G extremos · Ctrl+d/Ctrl+u media página · v seleccionar · c comentar · Ctrl+w o unificado",
+};
 
 interface LoadedTokens extends FileTokens {
   path: string;
@@ -29,19 +41,19 @@ interface DiffPanelProps {
   cursor: number;
   active: boolean;
   range: Selection | null;
-  /** Lines the viewport is showing, which is what half a page is half of. */
-  onPageSize: (lines: number) => void;
+  view: DiffView;
+  /** Column the cursor is on; only the split view shows two. */
+  side: Side;
+  /** The geometry of the viewport, for whoever has to halve a page: rows it
+   *  fits and row it is scrolled to. Both are read in rows on purpose — how
+   *  many items that is depends on the view, and the view can change between
+   *  this measurement and the key that uses it. */
+  onViewport: (rows: number, topRow: number) => void;
 }
 
-function isSelected(index: number, cursor: number, range: Selection | null): boolean {
-  if (!range) return index === cursor;
-  const { from, to } = selectionRange(range);
-  return index >= from && index <= to;
-}
-
-function emptyMessage(file: FileDiff | null, lineCount: number): string | null {
+function emptyMessage(file: FileDiff | null, itemCount: number): string | null {
   if (!file) return NOT_IN_DIFF;
-  return lineCount === 0 ? NO_LINES : null;
+  return itemCount === 0 ? NO_LINES : null;
 }
 
 export default function DiffPanel({
@@ -51,7 +63,9 @@ export default function DiffPanel({
   cursor,
   active,
   range,
-  onPageSize,
+  view,
+  side,
+  onViewport,
 }: DiffPanelProps): JSX.Element {
   const [rowsPerPage, setRowsPerPage] = useState(DEFAULT_PAGE_SIZE);
   const [tokens, setTokens] = useState<LoadedTokens | null>(null);
@@ -69,11 +83,11 @@ export default function DiffPanel({
     let alive = true;
     // A rename has one name per side, and each name answers for its own grammar.
     const names: Record<Side, string> = { old: file.oldPath ?? path, new: path };
-    const sideOf = (side: Side): Promise<Token[][] | null> => {
-      const name = names[side];
+    const sideOf = (of: Side): Promise<Token[][] | null> => {
+      const name = names[of];
       const language = languageOf(name);
       if (language === null) return Promise.resolve(null);
-      return readBlob(scope, name, side)
+      return readBlob(scope, name, of)
         .then((source) => tokenizeFile(source, language))
         .catch(() => null);
     };
@@ -88,85 +102,96 @@ export default function DiffPanel({
     };
   }, [scope, path, file]);
 
-  const { rows, lineRows } = useMemo(() => buildDiffRows(file), [file]);
+  const unified = useMemo(() => buildDiffRows(file), [file]);
+  const split = useMemo(() => (view === "split" ? splitLayout(file) : null), [view, file]);
 
   const handleTopRow = useCallback((row: number): void => {
     offsetRef.current = row;
     redraw((tick) => tick + 1);
   }, []);
 
-  const lineCount = lineRows.length;
+  // The cursor walks lines in one view and rows in the other, so everything
+  // below counts items: the two views only differ in what an item holds.
+  const rowCount = split ? split.rows.length : unified.rows.length;
+  const itemRows = split ? split.itemRows : unified.lineRows;
+  const itemCount = itemRows.length;
   const fileTokens = tokens && tokens.path === path ? tokens : null;
 
-  const view = rowWindow(lineRows, {
-    rowCount: rows.length,
+  const page = diffPage(itemRows, {
+    rowCount,
     pageSize: rowsPerPage,
     cursor,
     offset: offsetRef.current,
   });
+  const { visible, items } = page;
   // Written while rendering: where the window ends up is where the next one starts.
-  offsetRef.current = view.first;
-  const lines = linesInWindow(lineRows, view);
-  const mounted = mountedRows(lineRows, rows.length, lines, OVERSCAN);
-  const linesPerPage = lineCount === 0 ? 1 : lines.last - lines.first + 1;
+  offsetRef.current = visible.first;
+  const mounted = mountedRows(itemRows, rowCount, items, OVERSCAN);
 
-  // Half a page is half of what the reader can see, and what he sees is lines:
-  // the hunk headers in the window take rows off the count.
-  useEffect(() => onPageSize(linesPerPage), [linesPerPage, onPageSize]);
+  useEffect(() => onViewport(rowsPerPage, visible.first), [rowsPerPage, visible.first, onViewport]);
 
-  const shown: JSX.Element[] = [];
-  for (let index = mounted.start; index <= mounted.end; index += 1) {
-    const row = rows[index];
-    if (row.kind === "header") {
-      shown.push(
-        <li key={index} className="diff-hunk-header" role="separator" data-hunk-header="">
-          {row.header}
-        </li>,
-      );
-      continue;
-    }
-    const body = lineBody(row.line.content);
-    shown.push(
-      <DiffLine
-        key={index}
-        line={row.line}
-        index={row.index}
-        cursor={row.index === cursor}
-        selected={isSelected(row.index, cursor, range)}
-        tokens={tokensForLine(row.line, body, fileTokens)}
-      />,
-    );
-  }
-
-  const empty = emptyMessage(file, lineCount);
+  const empty = emptyMessage(file, itemCount);
 
   return (
     <section className="panel" aria-label={TITLE} aria-current={active} data-active={active}>
       <h2>
         {TITLE}
         {path !== null && <span className="panel-subtitle"> {path}</span>}
-        {lineCount > 0 && (
+        {itemCount > 0 && (
           <span className="diff-position">
             {" "}
-            línea {Math.min(cursor, lineCount - 1) + 1} de {lineCount}
+            {split ? "fila" : "línea"} {Math.min(cursor, itemCount - 1) + 1} de {itemCount}
           </span>
         )}
+        {split && <span className="diff-view"> SPLIT · lado {SIDE_LABELS[side]}</span>}
       </h2>
       {empty !== null && <p className="panel-empty">{empty}</p>}
+      {split && (
+        <div className="split-columns">
+          {COLUMNS.map((column) => (
+            <span
+              key={column}
+              className="split-column"
+              data-column={column}
+              data-active={column === side}
+            >
+              {SIDE_LABELS[column]}
+              {column === side && <span className="split-column-mark"> ◀ lado activo</span>}
+            </span>
+          ))}
+        </div>
+      )}
       <VirtualList
-        rowCount={rows.length}
+        rowCount={rowCount}
         firstRow={mounted.start}
-        scrollRow={view.first}
-        lines={lines}
-        linesPerPage={linesPerPage}
+        scrollRow={visible.first}
+        items={items}
+        itemsPerPage={page.itemCount}
         onRowsPerPage={setRowsPerPage}
         onTopRow={handleTopRow}
       >
-        {shown}
+        {split ? (
+          <SplitDiff
+            rows={split.rows}
+            first={mounted.start}
+            last={mounted.end}
+            cursor={cursor}
+            side={side}
+            range={range}
+            tokens={fileTokens}
+          />
+        ) : (
+          <UnifiedDiff
+            rows={unified.rows}
+            first={mounted.start}
+            last={mounted.end}
+            cursor={cursor}
+            range={range}
+            tokens={fileTokens}
+          />
+        )}
       </VirtualList>
-      <footer className="panel-help">
-        j/k línea · gg/G extremos · Ctrl+d/Ctrl+u media página · v seleccionar · c comentar
-      </footer>
+      <footer className="panel-help">{HELP[view]}</footer>
     </section>
   );
 }

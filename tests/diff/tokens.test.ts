@@ -50,6 +50,31 @@ describe("each line takes the tokens of its own side of the file", () => {
   });
 });
 
+/**
+ * The two columns of the split show the same context line out of two files, and
+ * a grammar that diverges between them colours it differently on each: the cell
+ * has to ask its own blob first or the old column reads as the new file.
+ */
+describe("a caller that knows its column asks that side first", () => {
+  const SAME: FileTokens = {
+    old: [tokens(["igual", "#f00"])],
+    new: [tokens(["igual", "#00f"])],
+  };
+  const same = line("context", 1, 1, "igual");
+
+  it("colours the old column with the old file and the new one with the new file", () => {
+    expect(tokensForLine(same, "igual", SAME, "old")).toEqual(SAME.old?.[0]);
+    expect(tokensForLine(same, "igual", SAME, "new")).toEqual(SAME.new?.[0]);
+  });
+
+  it("still falls back to the other side when the asked one does not answer", () => {
+    const onlyNew: FileTokens = { old: null, new: NEW };
+    const added = line("add", null, 2, "añadida");
+
+    expect(tokensForLine(added, "añadida", onlyNew, "old")).toEqual(NEW[1]);
+  });
+});
+
 describe("a blob that does not answer to the diff colours nothing", () => {
   it("gives up when the body of the line is not the one of the blob", () => {
     const added = line("add", null, 1, "otra cosa");
