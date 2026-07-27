@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "smoke:build": "bash tests/smoke/build-smoke.sh"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
